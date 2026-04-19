@@ -1,0 +1,29 @@
+{
+  "name": "drive-routes",
+  "version": "0.1.0",
+  "description": "A social platform for discovering and sharing the best driving roads",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:api": "cd apps/api && npm run dev",
+    "build:web": "cd apps/web && npm run build && npm run export",
+    "build:api": "cd apps/api && npm run build",
+    "deploy": "ts-node scripts/deploy.ts",
+    "seed": "ts-node scripts/seed.ts",
+    "install:all": "npm install && npm run install:workspaces",
+    "install:workspaces": "npm install --workspaces",
+    "clean": "rm -rf node_modules apps/*/node_modules apps/*/out apps/*/dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
