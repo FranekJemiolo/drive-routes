@@ -8,15 +8,22 @@
     "apps/api"
   ],
   "scripts": {
+    "dev": "ts-node scripts/dev-setup.ts start",
     "dev:web": "cd apps/web && npm run dev",
     "dev:api": "cd apps/api && npm run dev",
     "build:web": "cd apps/web && npm run build && npm run export",
     "build:api": "cd apps/api && npm run build",
     "deploy": "ts-node scripts/deploy.ts",
     "seed": "ts-node scripts/seed.ts",
+    "dev-setup": "ts-node scripts/dev-setup.ts",
+    "setup": "ts-node scripts/dev-setup.ts setup",
     "install:all": "npm install && npm run install:workspaces",
     "install:workspaces": "npm install --workspaces",
-    "clean": "rm -rf node_modules apps/*/node_modules apps/*/out apps/*/dist"
+    "clean": "rm -rf node_modules apps/*/node_modules apps/*/out apps/*/dist",
+    "docker:up": "docker-compose up -d postgres",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres",
+    "quick-start": "./scripts/quick-start.sh"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
