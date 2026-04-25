@@ -91,7 +91,7 @@ export default function RoadPanel({ road, onClose }: Props) {
             <div className="flex-1">
               <CardTitle className="text-xl font-bold text-white mb-1">{road.name}</CardTitle>
               <CardDescription className="text-slate-400">
-                {road.country} • {road.region}
+                {road.countries && road.countries.length > 0 ? road.countries.join(", ") : "Unknown"} • {road.region}
               </CardDescription>
             </div>
             <button
