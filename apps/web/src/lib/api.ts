@@ -36,10 +36,13 @@ export async function safeFetch(url: string): Promise<any | null> {
 }
 
 export async function fetchRoads(): Promise<Road[]> {
+  console.log('[API] fetchRoads called, isBrowserMode:', isBrowserMode());
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
     ensureStorageInitialized();
-    return getBrowserRoads();
+    const roads = getBrowserRoads();
+    console.log('[API] Returning', roads.length, 'roads from browser storage');
+    return roads;
   }
   
   const data = await safeFetch(`${API_URL}/roads`);

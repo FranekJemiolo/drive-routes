@@ -190,10 +190,13 @@ export function initializeBrowserStorage(): void {
   const initialized = localStorage.getItem(STORAGE_KEYS.INITIALIZED);
   
   if (!initialized) {
-    console.log('Initializing browser storage with demo data');
+    console.log('[Browser Storage] Initializing with demo data');
     localStorage.setItem(STORAGE_KEYS.ROADS, JSON.stringify(DEMO_ROADS));
     localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(DEMO_REVIEWS));
     localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+    console.log('[Browser Storage] Initialized with', DEMO_ROADS.length, 'roads and', DEMO_REVIEWS.length, 'reviews');
+  } else {
+    console.log('[Browser Storage] Already initialized');
   }
 }
 
@@ -305,5 +308,6 @@ export function updateRoadRating(roadId: string): void {
 // Check if running in browser mode
 export function isBrowserMode(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.location.hostname.includes('github.io');
+  return window.location.hostname.includes('github.io') || 
+         window.location.hostname.includes('localhost');
 }
