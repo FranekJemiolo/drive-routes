@@ -71,6 +71,7 @@ app.get("/roads", async (request, reply) => {
     ...road,
     geometry: typeof road.geometry === 'string' ? JSON.parse(road.geometry) : road.geometry,
     tags: typeof road.tags === 'string' ? JSON.parse(road.tags) : road.tags,
+    countries: typeof road.countries === 'string' ? JSON.parse(road.countries) : road.countries,
   }));
 });
 
@@ -95,6 +96,7 @@ app.get("/roads/:id", async (request, reply) => {
   const road = roads[0];
   road.geometry = typeof road.geometry === 'string' ? JSON.parse(road.geometry) : road.geometry;
   road.tags = typeof road.tags === 'string' ? JSON.parse(road.tags) : road.tags;
+  road.countries = typeof road.countries === 'string' ? JSON.parse(road.countries) : road.countries;
   
   return road;
 });

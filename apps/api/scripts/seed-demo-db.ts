@@ -28,6 +28,7 @@ async function seedDemoDb() {
     rating_avg REAL DEFAULT 0,
     rating_count INTEGER DEFAULT 0,
     tags TEXT,
+    countries TEXT,
     created_by INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id)
@@ -63,6 +64,7 @@ async function seedDemoDb() {
       rating_avg: 9.2,
       rating_count: 156,
       tags: JSON.stringify(["scenic", "coastal", "curves"]),
+      countries: JSON.stringify(["USA"]),
       created_by: 1
     },
     {
@@ -76,6 +78,7 @@ async function seedDemoDb() {
       rating_avg: 9.8,
       rating_count: 342,
       tags: JSON.stringify(["motorcycle", "curves", "challenging"]),
+      countries: JSON.stringify(["USA"]),
       created_by: 2
     },
     {
@@ -89,6 +92,7 @@ async function seedDemoDb() {
       rating_avg: 9.5,
       rating_count: 289,
       tags: JSON.stringify(["scenic", "mountains", "long-distance"]),
+      countries: JSON.stringify(["USA"]),
       created_by: 1
     },
     {
@@ -102,6 +106,7 @@ async function seedDemoDb() {
       rating_avg: 9.9,
       rating_count: 445,
       tags: JSON.stringify(["mountain", "hairpin", "europe"]),
+      countries: JSON.stringify(["Italy"]),
       created_by: 3
     },
     {
@@ -115,6 +120,7 @@ async function seedDemoDb() {
       rating_avg: 8.5,
       rating_count: 567,
       tags: JSON.stringify(["historic", "long-distance", "iconic"]),
+      countries: JSON.stringify(["USA"]),
       created_by: 1
     },
     {
@@ -128,6 +134,7 @@ async function seedDemoDb() {
       rating_avg: 9.7,
       rating_count: 623,
       tags: JSON.stringify(["race-track", "germany", "legendary"]),
+      countries: JSON.stringify(["Germany"]),
       created_by: 2
     },
     {
@@ -141,6 +148,7 @@ async function seedDemoDb() {
       rating_avg: 9.3,
       rating_count: 234,
       tags: JSON.stringify(["coastal", "australia", "scenic"]),
+      countries: JSON.stringify(["Australia"]),
       created_by: 3
     },
     {
@@ -154,6 +162,7 @@ async function seedDemoDb() {
       rating_avg: 9.4,
       rating_count: 312,
       tags: JSON.stringify(["coastal", "italy", "scenic"]),
+      countries: JSON.stringify(["Italy"]),
       created_by: 1
     }
   ];
@@ -163,7 +172,8 @@ async function seedDemoDb() {
     const escapedDesc = road.description.replace(/'/g, "''");
     const escapedGeom = road.geometry.replace(/'/g, "''");
     const escapedTags = road.tags.replace(/'/g, "''");
-    const sql = `INSERT INTO roads (name, description, geometry, length_km, rating_avg, rating_count, tags, created_by) VALUES ('${escapedName}', '${escapedDesc}', '${escapedGeom}', ${road.length_km}, ${road.rating_avg}, ${road.rating_count}, '${escapedTags}', ${road.created_by})`;
+    const escapedCountries = road.countries.replace(/'/g, "''");
+    const sql = `INSERT INTO roads (name, description, geometry, length_km, rating_avg, rating_count, tags, countries, created_by) VALUES ('${escapedName}', '${escapedDesc}', '${escapedGeom}', ${road.length_km}, ${road.rating_avg}, ${road.rating_count}, '${escapedTags}', '${escapedCountries}', ${road.created_by})`;
     db.run(sql);
   });
 

@@ -81,7 +81,7 @@ export default function RoadCard({ road }: Props) {
       <CardHeader>
         <CardTitle className="text-white text-lg">{road.name}</CardTitle>
         <CardDescription className="text-slate-400">
-          {road.country} • {road.region}
+          {road.countries && road.countries.length > 0 ? road.countries.join(", ") : "Unknown"} • {road.region}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

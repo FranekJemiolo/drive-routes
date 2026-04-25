@@ -30,7 +30,8 @@ export default function RoadsPage() {
 
   // Get unique countries
   const countries = useMemo(() => {
-    const uniqueCountries = Array.from(new Set(roads.map(r => r.country).filter(Boolean)));
+    const allCountries = roads.flatMap(r => r.countries || []);
+    const uniqueCountries = Array.from(new Set(allCountries.filter(Boolean)));
     return uniqueCountries.sort();
   }, [roads]);
 
@@ -40,7 +41,7 @@ export default function RoadsPage() {
 
     // Filter by country
     if (countryFilter !== "all") {
-      filtered = filtered.filter(r => r.country === countryFilter);
+      filtered = filtered.filter(r => (r.countries || []).includes(countryFilter));
     }
 
     // Sort

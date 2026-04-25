@@ -10,7 +10,7 @@ export type Road = {
     coordinates: [number, number][];
   };
   tags: string[];
-  country: string;
+  countries: string[];
   region?: string;
   length_km: number | string;
   created_by: string | null;
@@ -25,7 +25,7 @@ export type RoadCreateInput = {
     coordinates: [number, number][];
   };
   tags: string[];
-  country: string;
+  countries: string[];
   region?: string;
 };
 
