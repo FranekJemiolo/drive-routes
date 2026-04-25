@@ -308,6 +308,9 @@ export function updateRoadRating(roadId: string): void {
 // Check if running in browser mode
 export function isBrowserMode(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.location.hostname.includes('github.io') || 
-         window.location.hostname.includes('localhost');
+  const hostname = window.location.hostname;
+  console.log('[Browser Storage] Hostname:', hostname);
+  const isBrowser = hostname.includes('github.io') || hostname.includes('localhost');
+  console.log('[Browser Storage] isBrowserMode:', isBrowser);
+  return isBrowser;
 }
