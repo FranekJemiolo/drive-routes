@@ -4,6 +4,16 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { createPortal } from "react-dom";
 import { createRoad } from "../lib/api";
+import dynamic from "next/dynamic";
+
+const MapDrawing = dynamic(() => import("./MapDrawing"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 rounded-lg overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-800">
+      <div className="text-slate-400">Loading map...</div>
+    </div>
+  ),
+});
 
 interface RouteEditorProps {
   isOpen: boolean;
@@ -21,6 +31,7 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
   const [tags, setTags] = useState("");
   const [country, setCountry] = useState("");
   const [region, setRegion] = useState("");
+  const [geometry, setGeometry] = useState<{ type: "LineString"; coordinates: [number, number][] } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -31,23 +42,16 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
     setLoading(true);
     setError("");
 
+    if (!geometry || geometry.coordinates.length === 0) {
+      setError("Please draw a route on the map");
+      setLoading(false);
+      return;
+    }
+
     try {
       // Parse tags from comma-separated string
       const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
       
-      // For now, create a simple line geometry (placeholder)
-      // In production, this would come from map drawing or GPX import
-      const geometry: {
-        type: "LineString";
-        coordinates: [number, number][];
-      } = {
-        type: "LineString",
-        coordinates: [
-          [0, 0],
-          [1, 1]
-        ]
-      };
-
       await createRoad({
         name,
         description,
@@ -63,6 +67,7 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
       setTags("");
       setCountry("");
       setRegion("");
+      setGeometry(null);
 
       onClose();
       if (onRouteCreated) {
@@ -147,13 +152,17 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
             <p className="text-xs text-slate-500 mt-1">Separate multiple tags with commas</p>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-            <p className="text-sm text-slate-400 mb-2">
-              <strong className="text-slate-300">Route Geometry:</strong>
-            </p>
-            <p className="text-xs text-slate-500">
-              For this demo, a placeholder geometry will be used. In production, you would draw the route on the map or import a GPX file.
-            </p>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Route Geometry *</label>
+            <p className="text-xs text-slate-500 mb-2">Draw your route on the map below using the polyline tool</p>
+            {mounted && (
+              <MapDrawing onGeometryChange={setGeometry} />
+            )}
+            {geometry && geometry.coordinates.length > 0 && (
+              <p className="text-xs text-green-400 mt-2">
+                ✓ Route drawn with {geometry.coordinates.length} points
+              </p>
+            )}
           </div>
 
           <div className="flex space-x-3 pt-4">
