@@ -28,7 +28,6 @@ jobs:
         run: |
           cd apps/web
           npm run build
-          npm run export
 
       - name: Deploy frontend to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
