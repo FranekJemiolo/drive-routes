@@ -88,9 +88,9 @@ export default function Navbar() {
                 Roads
               </Link>
               {authenticated && (
-                <a href="#" className="text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                <Link href="/my-routes" className="text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                   My Routes
-                </a>
+                </Link>
               )}
               <Button 
                 onClick={handleAuthClick}
