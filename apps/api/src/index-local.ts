@@ -8,6 +8,7 @@ import path from "path";
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 import { getDatabase, getDatabaseMode, query, initDatabase } from "./db";
+import { hashPassword, comparePassword, generateToken, verifyToken } from "./lib/auth";
 
 // Initialize database with demo mode from env
 const demoMode = process.env.DEMO_MODE === 'true';
@@ -27,19 +28,114 @@ app.register(rateLimit, {
   timeWindow: "1 minute",
 });
 
-// Mock auth middleware for local development
+// Auth middleware to verify JWT tokens
 async function authMiddleware(req: any, reply: any) {
-  // For local development, we'll use a mock user
-  req.user = {
-    id: 1,
-    username: "local_dev_user",
-    email: "dev@localhost"
-  };
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return reply.code(401).send({ error: 'No token provided' });
+  }
+  
+  const token = authHeader.substring(7);
+  const decoded = verifyToken(token);
+  
+  if (!decoded) {
+    return reply.code(401).send({ error: 'Invalid or expired token' });
+  }
+  
+  // Verify user exists in database
+  const users = await query('SELECT id, email, username FROM users WHERE id = ?', [decoded.userId]);
+  if (users.length === 0) {
+    return reply.code(401).send({ error: 'User not found' });
+  }
+  
+  req.user = users[0];
 }
 
 // Routes
 app.get("/", async (request, reply) => {
-  return { status: "ok", service: "drive-routes-api", mode: getDatabaseMode() };
+  return { status: "ok", service: "drive-routes-api", mode: getDatabaseMode() });
+});
+
+// POST /auth/register - Register new user
+app.post("/auth/register", async (request: any, reply) => {
+  const { email, username, password } = request.body;
+  
+  // Validate input
+  if (!email || !username || !password) {
+    return reply.code(400).send({ error: "Email, username, and password are required" });
+  }
+  
+  if (password.length < 8) {
+    return reply.code(400).send({ error: "Password must be at least 8 characters" });
+  }
+  
+  // Check if user already exists
+  const existingUsers = await query(
+    'SELECT id FROM users WHERE email = ? OR username = ?',
+    [email, username]
+  );
+  
+  if (existingUsers.length > 0) {
+    return reply.code(409).send({ error: "User with this email or username already exists" });
+  }
+  
+  // Hash password
+  const passwordHash = await hashPassword(password);
+  
+  // Insert user
+  const result = await query(
+    'INSERT INTO users (email, username, password_hash) VALUES (?, ?, ?)',
+    [email, username, passwordHash]
+  );
+  
+  // Generate token
+  const userId = result.lastID || result.insertId;
+  const token = generateToken(String(userId), email);
+  
+  return { 
+    message: "User registered successfully",
+    token,
+    user: { id: userId, email, username }
+  };
+});
+
+// POST /auth/login - Login user
+app.post("/auth/login", async (request: any, reply) => {
+  const { email, password } = request.body;
+  
+  // Validate input
+  if (!email || !password) {
+    return reply.code(400).send({ error: "Email and password are required" });
+  }
+  
+  // Find user
+  const users = await query(
+    'SELECT id, email, username, password_hash FROM users WHERE email = ?',
+    [email]
+  );
+  
+  if (users.length === 0) {
+    return reply.code(401).send({ error: "Invalid email or password" });
+  }
+  
+  const user = users[0];
+  
+  // Verify password
+  const isValid = await comparePassword(password, user.password_hash);
+  
+  if (!isValid) {
+    return reply.code(401).send({ error: "Invalid email or password" });
+  }
+  
+  // Generate token
+  const token = generateToken(String(user.id), user.email);
+  
+  return {
+    message: "Login successful",
+    token,
+    user: { id: user.id, email: user.email, username: user.username }
+  };
 });
 
 // GET roads with optional bbox filter

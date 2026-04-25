@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     reputation_score DECIMAL(3,2) DEFAULT 0.0,
     onboarding_state TEXT DEFAULT 'new' CHECK (onboarding_state IN ('new', 'welcome_seen', 'interests_selected', 'first_action_done', 'completed')),
     onboarding_step INTEGER DEFAULT 0,

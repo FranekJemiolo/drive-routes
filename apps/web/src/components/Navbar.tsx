@@ -1,15 +1,19 @@
 "use client";
 
 import { Button } from "./ui/button";
-import { isAuthenticated, logout, login } from "../lib/auth";
+import { isAuthenticated, getUser, login, register, logout, setToken, setUser } from "../lib/auth";
 import { useState, useEffect } from "react";
 import { showToast } from "./ui/toast";
 
 export default function Navbar() {
   const [authenticated, setAuthenticated] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setAuthenticated(isAuthenticated());
@@ -22,17 +26,36 @@ export default function Navbar() {
       showToast("success", "Signed out successfully");
     } else {
       setShowSignInModal(true);
+      setError("");
     }
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, password);
-    setAuthenticated(true);
-    setShowSignInModal(false);
-    showToast("success", "Signed in successfully");
-    setEmail("");
-    setPassword("");
+    setLoading(true);
+    setError("");
+
+    try {
+      if (isRegisterMode) {
+        const response = await register(email, username, password);
+        setToken(response.token);
+        setUser(response.user);
+      } else {
+        const response = await login(email, password);
+        setToken(response.token);
+        setUser(response.user);
+      }
+      setAuthenticated(true);
+      setShowSignInModal(false);
+      setEmail("");
+      setPassword("");
+      setUsername("");
+      showToast("success", "Signed in successfully");
+    } catch (err: any) {
+      setError(err.message || "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,8 +110,26 @@ export default function Navbar() {
       {showSignInModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 w-96 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-4">Sign In</h2>
-            <form onSubmit={handleSignIn} className="space-y-4">
+            <h2 className="text-xl font-bold text-white mb-4">{isRegisterMode ? "Register" : "Sign In"}</h2>
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              {isRegisterMode && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Username</label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="username"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
                 <input
@@ -107,16 +148,21 @@ export default function Navbar() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={8}
                   className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="••••••••"
                 />
+                {isRegisterMode && (
+                  <p className="text-xs text-slate-500 mt-1">Minimum 8 characters</p>
+                )}
               </div>
               <div className="flex space-x-3">
                 <Button
                   type="submit"
+                  disabled={loading}
                   className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
                 >
-                  Sign In
+                  {loading ? "Loading..." : (isRegisterMode ? "Register" : "Sign In")}
                 </Button>
                 <Button
                   type="button"
@@ -128,7 +174,16 @@ export default function Navbar() {
                 </Button>
               </div>
             </form>
-            <p className="text-xs text-slate-500 mt-4 text-center">Demo mode - any email/password works</p>
+            <p className="text-xs text-slate-500 mt-4 text-center">
+              {isRegisterMode ? "Already have an account? " : "Don't have an account? "}
+              <button
+                type="button"
+                onClick={() => { setIsRegisterMode(!isRegisterMode); setError(""); }}
+                className="text-green-400 hover:text-green-300 underline"
+              >
+                {isRegisterMode ? "Sign in" : "Register"}
+              </button>
+            </p>
           </div>
         </div>
       )}

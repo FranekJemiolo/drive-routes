@@ -1,6 +1,7 @@
 import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
+import bcrypt from 'bcryptjs';
 
 async function seedDemoDb() {
   const SQL = await initSqlJs();
@@ -15,6 +16,8 @@ async function seedDemoDb() {
   db.run(`CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
     name TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
@@ -46,10 +49,17 @@ async function seedDemoDb() {
     UNIQUE(road_id, user_id)
   )`);
 
-  // Insert sample users
-  db.run(`INSERT OR IGNORE INTO users (email, name) VALUES ('demo@example.com', 'Demo User')`);
-  db.run(`INSERT OR IGNORE INTO users (email, name) VALUES ('driver@example.com', 'Road Enthusiast')`);
-  db.run(`INSERT OR IGNORE INTO users (email, name) VALUES ('motorcycle@example.com', 'Biker')`);
+  // Insert sample users with hashed passwords
+  const passwordHash1 = await bcrypt.hash('password123', 12);
+  const passwordHash2 = await bcrypt.hash('password123', 12);
+  const passwordHash3 = await bcrypt.hash('password123', 12);
+  
+  db.run(`INSERT OR IGNORE INTO users (email, username, password_hash, name) VALUES (?, ?, ?, ?)`, 
+    ['demo@example.com', 'demo', passwordHash1, 'Demo User']);
+  db.run(`INSERT OR IGNORE INTO users (email, username, password_hash, name) VALUES (?, ?, ?, ?)`, 
+    ['driver@example.com', 'driver', passwordHash2, 'Road Enthusiast']);
+  db.run(`INSERT OR IGNORE INTO users (email, username, password_hash, name) VALUES (?, ?, ?, ?)`, 
+    ['motorcycle@example.com', 'biker', passwordHash3, 'Biker']);
 
   // Insert sample roads with famous driving routes
   const sampleRoads = [
