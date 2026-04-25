@@ -45,9 +45,115 @@ jobs:
       - name: Build Web
         run: cd apps/web && npm run build
 
-  deploy-github-pages:
+  test-sqlite-demo:
     runs-on: ubuntu-latest
     needs: lint-and-test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Seed demo database
+        run: cd apps/api && npx tsx scripts/seed-demo-db.ts
+      
+      - name: Start API in demo mode
+        run: cd apps/api && DEMO_MODE=true npm run dev &
+        env:
+          DEMO_MODE: "true"
+      
+      - name: Wait for API to start
+        run: sleep 5
+      
+      - name: Test API health
+        run: curl http://localhost:3001/
+      
+      - name: Test API mode
+        run: |
+          response=$(curl -s http://localhost:3001/)
+          echo $response
+          if [[ $response == *"sqlite"* ]]; then
+            echo "✓ API running in SQLite demo mode"
+          else
+            echo "✗ API not in SQLite mode"
+            exit 1
+          fi
+      
+      - name: Test roads endpoint
+        run: curl -s http://localhost:3001/roads | head -c 500
+
+  test-postgres:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: drive_routes_dev
+          POSTGRES_USER: drive_routes
+          POSTGRES_DB: drive_routes
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+      
+      - name: Start API in PostgreSQL mode
+        run: cd apps/api && DATABASE_URL="postgresql://drive_routes:drive_routes_dev@localhost:5432/drive_routes" npm run dev &
+        env:
+          DATABASE_URL: "postgresql://drive_routes:drive_routes_dev@localhost:5432/drive_routes"
+          DEMO_MODE: "false"
+      
+      - name: Wait for API to start
+        run: sleep 5
+      
+      - name: Test API health
+        run: curl http://localhost:3001/
+      
+      - name: Test API mode
+        run: |
+          response=$(curl -s http://localhost:3001/)
+          echo $response
+          if [[ $response == *"postgres"* ]]; then
+            echo "✓ API running in PostgreSQL mode"
+          else
+            echo "✗ API not in PostgreSQL mode"
+            exit 1
+          fi
+
+  deploy-github-pages:
+    runs-on: ubuntu-latest
+    needs: [test-sqlite-demo, test-postgres]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
@@ -62,6 +168,9 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
+      
+      - name: Seed demo database
+        run: cd apps/api && npx tsx scripts/seed-demo-db.ts
       
       - name: Build web app
         run: cd apps/web && npm run build
