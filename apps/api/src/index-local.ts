@@ -1,16 +1,17 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
-import { Pool } from "pg";
 import dotenv from "dotenv";
+import path from "path";
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from root directory
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://drive_routes:drive_routes_dev@localhost:5432/drive_routes",
-});
+import { getDatabase, getDatabaseMode, query, initDatabase } from "./db";
+
+// Initialize database with demo mode from env
+const demoMode = process.env.DEMO_MODE === 'true';
+initDatabase(demoMode);
 
 // Fastify app
 const app = Fastify({ logger: true });
@@ -30,7 +31,7 @@ app.register(rateLimit, {
 async function authMiddleware(req: any, reply: any) {
   // For local development, we'll use a mock user
   req.user = {
-    id: "550e8400-e29b-41d4-a716-446655440001",
+    id: 1,
     username: "local_dev_user",
     email: "dev@localhost"
   };
@@ -38,92 +39,84 @@ async function authMiddleware(req: any, reply: any) {
 
 // Routes
 app.get("/", async (request, reply) => {
-  return { status: "ok", service: "drive-routes-api" };
+  return { status: "ok", service: "drive-routes-api", mode: getDatabaseMode() };
 });
 
 // GET roads with optional bbox filter
 app.get("/roads", async (request, reply) => {
   const { bbox } = request.query as { bbox?: string };
+  const mode = getDatabaseMode();
   
-  let query = `
+  let sql = `
     SELECT 
-      id, name, description, rating_avg, rating_count, save_count,
-      ST_AsGeoJSON(geometry) as geometry,
-      tags, country, region, length_km, created_by, created_at
+      id, name, description, rating_avg, rating_count,
+      geometry, tags, length_km, created_by, created_at
     FROM roads
   `;
   
   const params: any[] = [];
   
-  if (bbox) {
+  if (mode === 'postgres' && bbox) {
+    // Use PostGIS spatial query in production mode
     const [minLng, minLat, maxLng, maxLat] = bbox.split(",").map(Number);
-    query += ` WHERE ST_Intersects(geometry, ST_MakeEnvelope($1, $2, $3, $4, 4326))`;
+    sql += ` WHERE ST_Intersects(geometry, ST_MakeEnvelope($1, $2, $3, $4, 4326))`;
     params.push(minLng, minLat, maxLng, maxLat);
   }
   
-  query += ` ORDER BY rating_avg DESC, save_count DESC LIMIT 100`;
+  sql += ` ORDER BY rating_avg DESC LIMIT 100`;
   
-  const result = await pool.query(query, params);
+  const roads = await query(sql, params);
   
-  const roads = result.rows.map(row => ({
-    ...row,
-    geometry: JSON.parse(row.geometry),
+  return roads.map((road: any) => ({
+    ...road,
+    geometry: typeof road.geometry === 'string' ? JSON.parse(road.geometry) : road.geometry,
   }));
-  
-  return roads;
 });
 
 // GET road by ID
 app.get("/roads/:id", async (request, reply) => {
   const { id } = request.params as { id: string };
   
-  const result = await pool.query(
+  const roads = await query(
     `
     SELECT 
-      id, name, description, rating_avg, rating_count, save_count,
-      ST_AsGeoJSON(geometry) as geometry,
-      tags, country, region, length_km, created_by, created_at
-    FROM roads WHERE id = $1
+      id, name, description, rating_avg, rating_count,
+      geometry, tags, length_km, created_by, created_at
+    FROM roads WHERE id = ?
     `,
     [id]
   );
   
-  if (result.rows.length === 0) {
+  if (roads.length === 0) {
     return reply.code(404).send({ error: "Road not found" });
   }
   
-  const road = result.rows[0];
-  road.geometry = JSON.parse(road.geometry);
+  const road = roads[0];
+  road.geometry = typeof road.geometry === 'string' ? JSON.parse(road.geometry) : road.geometry;
   
   return road;
 });
 
 // POST new road (requires auth)
 app.post("/roads", { preHandler: authMiddleware }, async (request: any, reply) => {
-  const { name, description, geometry, tags, country, region } = request.body;
-  
+  const { name, description, geometry, tags } = request.body;
   const user = request.user;
   
-  // Calculate length from geometry
-  const result = await pool.query(
+  // Simplified insert without PostGIS for demo mode
+  const result = await query(
     `
     INSERT INTO roads (
-      name, description, geometry, tags, country, region, 
-      length_km, created_by
+      name, description, geometry, tags, length_km, created_by
     )
-    VALUES (
-      $1, $2, ST_GeomFromGeoJSON($3), $4, $5, $6,
-      ST_Length(ST_GeomFromGeoJSON($3)::geography, true) / 1000, $7
-    )
-    RETURNING id, name, created_at
+    VALUES (?, ?, ?, ?, ?, ?)
     `,
-    [name, description, JSON.stringify(geometry), tags, country, region, user.id]
+    [name, description, JSON.stringify(geometry), JSON.stringify(tags), 0, user.id]
   );
   
-  return result.rows[0];
+  return { id: (result as any).lastID, name, created_at: new Date().toISOString() };
 });
 
-// POST GPX import (requires auth)
+// POST GPX import (requires auth) - simplified for demo mode
 app.post("/roads/import-gpx", { preHandler: authMiddleware }, async (request: any, reply) => {
   const { gpxText, name, tags } = request.body;
   const user = request.user;
@@ -146,23 +139,18 @@ app.post("/roads/import-gpx", { preHandler: authMiddleware }, async (request: an
       return reply.code(400).send({ error: "GPX must contain track data" });
     }
     
-    // Create road from GPX
-    const result = await pool.query(
+    // Simplified insert without PostGIS length calculation
+    const result = await query(
       `
       INSERT INTO roads (
-        name, geometry, tags, country, region,
-        length_km, created_by
+        name, geometry, tags, length_km, created_by
       )
-      VALUES (
-        $1, ST_GeomFromGeoJSON($2), $3, 'Imported', 'GPX',
-        ST_Length(ST_GeomFromGeoJSON($2)::geography, true) / 1000, $4
-      )
-      RETURNING id, name, created_at
+      VALUES (?, ?, ?, ?, ?)
       `,
-      [name, JSON.stringify(line), tags, user.id]
+      [name, JSON.stringify(line), JSON.stringify(tags), 0, user.id]
     );
     
-    return result.rows[0];
+    return { id: (result as any).lastID, name, created_at: new Date().toISOString() };
   } catch (error) {
     console.error("GPX import error:", error);
     return reply.code(500).send({ error: "Failed to process GPX file" });
@@ -173,8 +161,8 @@ app.post("/roads/import-gpx", { preHandler: authMiddleware }, async (request: an
 app.get("/reviews", async (request, reply) => {
   const { road_id } = request.query as { road_id?: string };
   
-  let query = `
-    SELECT r.*, u.username
+  let sql = `
+    SELECT r.*, u.name as username
     FROM reviews r
     JOIN users u ON r.user_id = u.id
   `;
@@ -182,53 +170,49 @@ app.get("/reviews", async (request, reply) => {
   const params: any[] = [];
   
   if (road_id) {
-    query += ` WHERE r.road_id = $1`;
+    sql += ` WHERE r.road_id = ?`;
     params.push(road_id);
   }
   
-  query += ` ORDER BY r.created_at DESC`;
+  sql += ` ORDER BY r.created_at DESC`;
   
-  const result = await pool.query(query, params);
-  return result.rows;
+  const result = await query(sql, params);
+  return result;
 });
 
-// POST review (requires auth)
+// POST review (requires auth) - simplified for demo mode
 app.post("/reviews", { preHandler: authMiddleware }, async (request: any, reply) => {
-  const { road_id, ratings, text } = request.body;
+  const { road_id, rating, comment } = request.body;
   const user = request.user;
   
-  const result = await pool.query(
+  const result = await query(
     `
-    INSERT INTO reviews (user_id, road_id, ratings, text)
-    VALUES ($1, $2, $3, $4)
-    RETURNING id, created_at
+    INSERT INTO reviews (user_id, road_id, rating, comment)
+    VALUES (?, ?, ?, ?)
     `,
-    [user.id, road_id, JSON.stringify(ratings), text]
+    [user.id, road_id, rating, comment]
   );
   
-  // Update road rating averages
-  await pool.query(
+  // Simplified rating update for demo mode
+  const avgResult = await query(
     `
-    UPDATE roads 
-    SET 
-      rating_avg = (
-        SELECT AVG(
-          (ratings->>'enjoyment')::numeric + 
-          (ratings->>'scenery')::numeric + 
-          (ratings->>'surface')::numeric + 
-          (10 - (ratings->>'traffic')::numeric)
-        ) / 4
-        FROM reviews WHERE road_id = $1
-      ),
-      rating_count = (
-        SELECT COUNT(*) FROM reviews WHERE road_id = $1
-      )
-    WHERE id = $1
+    SELECT AVG(rating) as avg_rating, COUNT(*) as count
+    FROM reviews WHERE road_id = ?
     `,
     [road_id]
   );
   
-  return result.rows[0];
+  const avg = avgResult[0];
+  await query(
+    `
+    UPDATE roads 
+    SET rating_avg = ?, rating_count = ?
+    WHERE id = ?
+    `,
+    [avg.avg_rating, avg.count, road_id]
+  );
+  
+  return { id: (result as any).lastID, created_at: new Date().toISOString() };
 });
 
 // Start server

@@ -54,6 +54,19 @@ DriveRoutes is a social platform for discovering, rating, and sharing the best d
 **Reason**: Tailwind CSS v4 moved PostCSS plugin to separate package
 **Outcome**: Proper Tailwind CSS v4 configuration
 
+### 2026-04-25: Demo Mode Implementation
+**Decision**: Added demo mode with SQLite database for GitHub Pages deployment
+**Reason**: To enable hosting on GitHub Pages without requiring PostgreSQL database
+**Outcome**: 
+- Added sql.js for in-memory SQLite database
+- Created database abstraction layer supporting both PostgreSQL and SQLite
+- Implemented DEMO_MODE environment variable to switch between modes
+- Created seed script with 8 famous driving routes (Pacific Coast Highway, Tail of the Dragon, etc.)
+- Simplified API endpoints to work without PostGIS in demo mode
+- Configured Next.js with basePath for GitHub Pages
+- Updated CI/CD to deploy to GitHub Pages with demo database
+**Trade-offs**: Demo mode lacks PostGIS spatial queries and GPX length calculations
+
 ## Known Issues
 - xmldom package lacks TypeScript types (non-blocking)
 - @apply rule in globals.css shows unknown at-rule warning (cosmetic)

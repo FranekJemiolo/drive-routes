@@ -46,3 +46,10 @@ coverage/
 .cache/
 .temp/
 tmp/
+
+# Database (PostgreSQL data)
+*.db-shm
+*.db-wal
+
+# Demo database (committed for GitHub Pages)
+# !apps/api/demo.db

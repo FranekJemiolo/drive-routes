@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  basePath: '/drive-routes',
+  assetPrefix: '/drive-routes',
   trailingSlash: true,
   images: {
     unoptimized: true
