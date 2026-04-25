@@ -50,7 +50,7 @@ app.get("/roads", async (request, reply) => {
   let sql = `
     SELECT 
       id, name, description, rating_avg, rating_count,
-      geometry, tags, length_km, created_by, created_at
+      geometry, tags, countries, length_km, created_by, created_at
     FROM roads
   `;
   
