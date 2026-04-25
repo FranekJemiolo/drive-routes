@@ -215,8 +215,19 @@ export function initializeBrowserStorage(): void {
 // Roads CRUD
 export function getRoads(): Road[] {
   if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(STORAGE_KEYS.ROADS);
-  return data ? JSON.parse(data) : [];
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.ROADS);
+    if (!data) {
+      console.error('[Browser Storage] No roads data found in localStorage');
+      return [];
+    }
+    const roads = JSON.parse(data);
+    console.log('[Browser Storage] getRoads returned', roads.length, 'roads');
+    return roads;
+  } catch (error) {
+    console.error('[Browser Storage] Failed to get roads:', error);
+    return [];
+  }
 }
 
 export function getRoad(id: string): Road | null {
