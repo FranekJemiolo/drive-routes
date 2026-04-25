@@ -1,4 +1,4 @@
-import { Road, Review, User, UserRoute } from "../types";
+import { Road, Review, User, UserRoute, ReviewSortOption } from "../types";
 import { showToast } from "../components/ui/toast";
 import { 
   isBrowserMode, 
@@ -111,26 +111,36 @@ export async function createRoad(road: Partial<Road>): Promise<Road | null> {
   }
 }
 
-export async function fetchReviews(roadId: string): Promise<Review[]> {
+export async function fetchReviews(roadId: string, sort?: ReviewSortOption): Promise<Review[]> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
     ensureStorageInitialized();
-    return getBrowserReviews(roadId);
+    const reviews = getBrowserReviews(roadId);
+    // Sort reviews based on sort option
+    if (sort === 'score_asc') return reviews.sort((a, b) => a.score - b.score);
+    if (sort === 'score_desc') return reviews.sort((a, b) => b.score - a.score);
+    if (sort === 'recency_asc') return reviews.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    if (sort === 'recency_desc') return reviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return reviews;
   }
-  
-  const data = await safeFetch(`${API_URL}/reviews?road_id=${roadId}`);
+
+  const url = sort
+    ? `${API_URL}/roads/${roadId}/reviews?sort=${sort}`
+    : `${API_URL}/roads/${roadId}/reviews`;
+
+  const data = await safeFetch(url);
   return data || [];
 }
 
-export async function createReview(review: Partial<Review>): Promise<Review | null> {
+export async function createReview(roadId: string, review: { score: number; text?: string }): Promise<Review | null> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
     ensureStorageInitialized();
-    return createBrowserReview(review);
+    return createBrowserReview({ ...review, road_id: roadId });
   }
-  
+
   try {
-    const res = await fetch(`${API_URL}/reviews`, {
+    const res = await fetch(`${API_URL}/roads/${roadId}/reviews`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,12 +148,70 @@ export async function createReview(review: Partial<Review>): Promise<Review | nu
       },
       body: JSON.stringify(review),
     });
-    
-    if (!res.ok) throw new Error("Failed to create review");
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const errorMessage = errorData.error || "Failed to create review";
+      showToast("error", errorMessage);
+      throw new Error(errorMessage);
+    }
+    showToast("success", "Review created successfully");
     return await res.json();
   } catch (e) {
     console.error("Create review error:", e);
-    return null;
+    if (!(e instanceof Error)) showToast("error", "Failed to create review");
+    throw e;
+  }
+}
+
+export async function updateReview(reviewId: string, review: { score?: number; text?: string }): Promise<Review | null> {
+  try {
+    const res = await fetch(`${API_URL}/reviews/${reviewId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(review),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const errorMessage = errorData.error || "Failed to update review";
+      showToast("error", errorMessage);
+      throw new Error(errorMessage);
+    }
+    showToast("success", "Review updated successfully");
+    return await res.json();
+  } catch (e) {
+    console.error("Update review error:", e);
+    if (!(e instanceof Error)) showToast("error", "Failed to update review");
+    throw e;
+  }
+}
+
+export async function deleteReview(reviewId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/reviews/${reviewId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const errorMessage = errorData.error || "Failed to delete review";
+      showToast("error", errorMessage);
+      throw new Error(errorMessage);
+    }
+    showToast("success", "Review deleted successfully");
+    return true;
+  } catch (e) {
+    console.error("Delete review error:", e);
+    if (!(e instanceof Error)) showToast("error", "Failed to delete review");
+    throw e;
   }
 }
 

@@ -178,66 +178,137 @@ app.post("/roads/import-gpx", { preHandler: authMiddleware }, async (request: an
   }
 });
 
-// GET reviews for a road
-app.get("/reviews", async (request, reply) => {
-  const { road_id } = request.query as { road_id?: string };
+// GET reviews for a road with sorting
+app.get("/roads/:id/reviews", async (request, reply) => {
+  const { id } = request.params as { id: string };
+  const { sort } = request.query as { sort?: string };
   
-  let query = `
-    SELECT r.*, u.username
-    FROM reviews r
-    JOIN users u ON r.user_id = u.id
-  `;
-  
-  const params: any[] = [];
-  
-  if (road_id) {
-    query += ` WHERE r.road_id = $1`;
-    params.push(road_id);
-  }
-  
-  query += ` ORDER BY r.created_at DESC`;
-  
-  const result = await pool.query(query, params);
-  return result.rows;
-});
-
-// POST review (requires auth)
-app.post("/reviews", { preHandler: authMiddleware }, async (request: any, reply) => {
-  const { road_id, ratings, text } = request.body;
-  const user = request.user;
+  let orderBy = 'r.created_at DESC';
+  if (sort === 'score_asc') orderBy = 'r.score ASC';
+  else if (sort === 'score_desc') orderBy = 'r.score DESC';
+  else if (sort === 'recency_asc') orderBy = 'r.created_at ASC';
+  else if (sort === 'recency_desc') orderBy = 'r.created_at DESC';
   
   const result = await pool.query(
     `
-    INSERT INTO reviews (user_id, road_id, ratings, text)
-    VALUES ($1, $2, $3, $4)
-    RETURNING id, created_at
+    SELECT 
+      r.id, r.user_id, r.road_id, r.score, r.text, r.created_at, r.updated_at,
+      u.id as user_id, u.username
+    FROM reviews r
+    JOIN users u ON r.user_id = u.id
+    WHERE r.road_id = $1
+    ORDER BY ${orderBy}
     `,
-    [user.id, road_id, JSON.stringify(ratings), text]
+    [id]
   );
   
-  // Update road rating averages
-  await pool.query(
+  return result.rows.map(row => ({
+    id: row.id,
+    user_id: row.user_id,
+    road_id: row.road_id,
+    score: row.score,
+    text: row.text,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    user: {
+      id: row.user_id,
+      username: row.username
+    }
+  }));
+});
+
+// POST review for a road (requires auth)
+app.post("/roads/:id/reviews", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const { score, text } = request.body;
+  const user = request.user;
+  
+  // Validate score range
+  if (score < 1 || score > 10) {
+    return reply.code(400).send({ error: "Score must be between 1 and 10" });
+  }
+  
+  try {
+    const result = await pool.query(
+      `
+      INSERT INTO reviews (user_id, road_id, score, text)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, created_at
+      `,
+      [user.id, id, score, text]
+    );
+    
+    return result.rows[0];
+  } catch (error: any) {
+    if (error.code === '23505') { // Unique violation
+      return reply.code(400).send({ error: "You have already reviewed this road" });
+    }
+    throw error;
+  }
+});
+
+// PUT review (requires auth, owner only)
+app.put("/reviews/:id", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const { score, text } = request.body;
+  const user = request.user;
+  
+  // Validate score range if provided
+  if (score !== undefined && (score < 1 || score > 10)) {
+    return reply.code(400).send({ error: "Score must be between 1 and 10" });
+  }
+  
+  // Check ownership
+  const existing = await pool.query(
+    "SELECT user_id FROM reviews WHERE id = $1",
+    [id]
+  );
+  
+  if (existing.rows.length === 0) {
+    return reply.code(404).send({ error: "Review not found" });
+  }
+  
+  if (existing.rows[0].user_id !== user.id) {
+    return reply.code(403).send({ error: "You can only edit your own reviews" });
+  }
+  
+  const result = await pool.query(
     `
-    UPDATE roads 
-    SET 
-      rating_avg = (
-        SELECT AVG(
-          (ratings->>'enjoyment')::numeric + 
-          (ratings->>'scenery')::numeric + 
-          (ratings->>'surface')::numeric + 
-          (10 - (ratings->>'traffic')::numeric)
-        ) / 4
-        FROM reviews WHERE road_id = $1
-      ),
-      rating_count = (
-        SELECT COUNT(*) FROM reviews WHERE road_id = $1
-      )
-    WHERE id = $1
+    UPDATE reviews
+    SET score = COALESCE($1, score),
+        text = COALESCE($2, text),
+        updated_at = NOW()
+    WHERE id = $3
+    RETURNING id, created_at, updated_at
     `,
-    [road_id]
+    [score, text, id]
   );
   
   return result.rows[0];
+});
+
+// DELETE review (requires auth, owner only)
+app.delete("/reviews/:id", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const user = request.user;
+  
+  // Check ownership
+  const existing = await pool.query(
+    "SELECT user_id FROM reviews WHERE id = $1",
+    [id]
+  );
+  
+  if (existing.rows.length === 0) {
+    return reply.code(404).send({ error: "Review not found" });
+  }
+  
+  if (existing.rows[0].user_id !== user.id) {
+    return reply.code(403).send({ error: "You can only delete your own reviews" });
+  }
+  
+  await pool.query("DELETE FROM reviews WHERE id = $1", [id]);
+  
+  return { success: true };
 });
 
 // Start server

@@ -36,14 +36,15 @@ CREATE TABLE IF NOT EXISTS roads (
 -- Spatial index for roads
 CREATE INDEX IF NOT EXISTS idx_roads_geometry ON roads USING GIST (geometry);
 
--- Reviews table
+-- Reviews table with simplified single score
 CREATE TABLE IF NOT EXISTS reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) NOT NULL,
     road_id UUID REFERENCES roads(id) NOT NULL,
-    ratings JSONB NOT NULL,
+    score INTEGER NOT NULL CHECK (score >= 1 AND score <= 10),
     text TEXT,
     created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
     UNIQUE(user_id, road_id) -- One review per user per road
 );
 
@@ -83,6 +84,8 @@ CREATE INDEX IF NOT EXISTS idx_roads_rating ON roads(rating_avg DESC, save_count
 CREATE INDEX IF NOT EXISTS idx_roads_created_by ON roads(created_by);
 CREATE INDEX IF NOT EXISTS idx_reviews_road_id ON reviews(road_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_score ON reviews(score);
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_routes_created_by ON user_routes(created_by);
 CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
@@ -96,14 +99,9 @@ RETURNS TRIGGER AS $$
 BEGIN
     UPDATE roads 
     SET 
-        rating_avg = (
-            SELECT AVG(
-                (ratings->>'enjoyment')::numeric + 
-                (ratings->>'scenery')::numeric + 
-                (ratings->>'surface')::numeric + 
-                (10 - (ratings->>'traffic')::numeric)
-            ) / 4
-            FROM reviews WHERE road_id = NEW.road_id
+        rating_avg = COALESCE(
+            (SELECT AVG(score) FROM reviews WHERE road_id = NEW.road_id),
+            0.0
         ),
         rating_count = (
             SELECT COUNT(*) FROM reviews WHERE road_id = NEW.road_id
@@ -114,6 +112,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_update_road_stats
-    AFTER INSERT OR UPDATE ON reviews
+    AFTER INSERT OR UPDATE OR DELETE ON reviews
     FOR EACH ROW
     EXECUTE FUNCTION update_road_stats();

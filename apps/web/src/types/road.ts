@@ -33,15 +33,28 @@ export type Review = {
   id: string;
   user_id: string;
   road_id: string;
-  ratings: {
-    enjoyment: number; // 1-10
-    scenery: number; // 1-10
-    surface: number; // 1-10
-    traffic: number; // 1-10
-  };
+  score: number; // 1-10
   text?: string;
   created_at: string;
+  updated_at?: string;
+  user?: {
+    id: string;
+    username: string;
+  };
 };
+
+export type ReviewCreateInput = {
+  road_id: string;
+  score: number; // 1-10
+  text?: string;
+};
+
+export type ReviewUpdateInput = {
+  score?: number; // 1-10
+  text?: string;
+};
+
+export type ReviewSortOption = 'score_asc' | 'score_desc' | 'recency_asc' | 'recency_desc';
 
 export type UserRoute = {
   id: string;

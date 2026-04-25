@@ -17,8 +17,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[-122.4194, 37.7749], [-122.4783, 37.8199], [-122.5110, 37.7749]]
     },
     length_km: 120.7,
-    rating_avg: 9.2,
-    rating_count: 156,
+    rating_avg: 9.0,
+    rating_count: 3,
     save_count: 89,
     tags: ["scenic", "coastal", "curves"],
     countries: ["USA"],
@@ -35,8 +35,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[10.4256, 46.5256], [10.4489, 46.5156], [10.4756, 46.5056]]
     },
     length_km: 75.5,
-    rating_avg: 9.5,
-    rating_count: 234,
+    rating_avg: 9.33,
+    rating_count: 3,
     save_count: 156,
     tags: ["mountain", "curves", "scenic"],
     countries: ["Italy"],
@@ -53,8 +53,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[24.6167, 45.6167], [24.6333, 45.6333], [24.6500, 45.6500]]
     },
     length_km: 90.0,
-    rating_avg: 9.3,
-    rating_count: 189,
+    rating_avg: 9.0,
+    rating_count: 3,
     save_count: 112,
     tags: ["mountain", "scenic", "curves"],
     countries: ["Romania"],
@@ -71,8 +71,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[7.1667, 62.6167], [7.1833, 62.6333], [7.2000, 62.6500]]
     },
     length_km: 55.0,
-    rating_avg: 9.1,
-    rating_count: 145,
+    rating_avg: 8.5,
+    rating_count: 2,
     save_count: 78,
     tags: ["mountain", "scenic", "curves"],
     countries: ["Norway"],
@@ -89,8 +89,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[-19.0167, 64.9167], [-19.0333, 64.9333], [-19.0500, 64.9500]]
     },
     length_km: 1332.0,
-    rating_avg: 9.4,
-    rating_count: 267,
+    rating_avg: 9.33,
+    rating_count: 3,
     save_count: 201,
     tags: ["scenic", "epic", "adventure"],
     countries: ["Iceland"],
@@ -107,8 +107,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[143.4167, -38.7167], [143.4333, -38.7333], [143.4500, -38.7500]]
     },
     length_km: 243.0,
-    rating_avg: 9.0,
-    rating_count: 198,
+    rating_avg: 8.5,
+    rating_count: 2,
     save_count: 134,
     tags: ["scenic", "coastal", "curves"],
     countries: ["Australia"],
@@ -125,8 +125,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[-87.6167, 41.8167], [-87.6333, 41.8333], [-87.6500, 41.8500]]
     },
     length_km: 3940.0,
-    rating_avg: 8.8,
-    rating_count: 312,
+    rating_avg: 8.5,
+    rating_count: 2,
     save_count: 267,
     tags: ["historic", "epic", "adventure"],
     countries: ["USA"],
@@ -143,8 +143,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[11.9167, 46.4167], [11.9333, 46.4333], [11.9500, 46.4500]]
     },
     length_km: 110.0,
-    rating_avg: 9.6,
-    rating_count: 278,
+    rating_avg: 9.5,
+    rating_count: 2,
     save_count: 189,
     tags: ["mountain", "scenic", "curves"],
     countries: ["Italy"],
@@ -155,31 +155,173 @@ const DEMO_ROADS: Road[] = [
 ];
 
 const DEMO_REVIEWS: Review[] = [
+  // Pacific Coast Highway reviews
   {
     id: "1",
     road_id: "1",
     user_id: "1",
-    ratings: {
-      enjoyment: 9,
-      scenery: 10,
-      surface: 8,
-      traffic: 7
-    },
+    score: 9,
     text: "Absolutely stunning drive. The ocean views are breathtaking!",
-    created_at: new Date().toISOString()
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString()
   },
   {
     id: "2",
+    road_id: "1",
+    user_id: "2",
+    score: 10,
+    text: "Best coastal drive in America. Don't miss sunset at Big Sur.",
+    created_at: new Date(Date.now() - 86400000 * 15).toISOString()
+  },
+  {
+    id: "3",
+    road_id: "1",
+    user_id: "3",
+    score: 8,
+    text: "Great road but can get crowded on weekends. Go early morning.",
+    created_at: new Date(Date.now() - 86400000 * 7).toISOString()
+  },
+  // Stelvio Pass reviews
+  {
+    id: "4",
     road_id: "2",
     user_id: "1",
-    ratings: {
-      enjoyment: 10,
-      scenery: 10,
-      surface: 7,
-      traffic: 8
-    },
+    score: 10,
     text: "The most challenging and rewarding mountain pass I've ever driven.",
-    created_at: new Date().toISOString()
+    created_at: new Date(Date.now() - 86400000 * 45).toISOString()
+  },
+  {
+    id: "5",
+    road_id: "2",
+    user_id: "2",
+    score: 9,
+    text: "Incredible engineering. The hairpin turns are legendary.",
+    created_at: new Date(Date.now() - 86400000 * 20).toISOString()
+  },
+  {
+    id: "6",
+    road_id: "2",
+    user_id: "3",
+    score: 9,
+    text: "Not for the faint of heart. Bring a good car with strong brakes.",
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString()
+  },
+  // Transfăgărășan reviews
+  {
+    id: "7",
+    road_id: "3",
+    user_id: "1",
+    score: 9,
+    text: "Romania's hidden gem. The scenery is unmatched.",
+    created_at: new Date(Date.now() - 86400000 * 60).toISOString()
+  },
+  {
+    id: "8",
+    road_id: "3",
+    user_id: "2",
+    score: 10,
+    text: "Top Gear was right - this is the best road in the world.",
+    created_at: new Date(Date.now() - 86400000 * 25).toISOString()
+  },
+  {
+    id: "9",
+    road_id: "3",
+    user_id: "3",
+    score: 8,
+    text: "Check if it's open before going - closes in winter.",
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString()
+  },
+  // Trollstigen reviews
+  {
+    id: "10",
+    road_id: "4",
+    user_id: "1",
+    score: 9,
+    text: "The views from the top are worth every hairpin turn.",
+    created_at: new Date(Date.now() - 86400000 * 35).toISOString()
+  },
+  {
+    id: "11",
+    road_id: "4",
+    user_id: "2",
+    score: 8,
+    text: "Scary but amazing. Not recommended for RVs!",
+    created_at: new Date(Date.now() - 86400000 * 18).toISOString()
+  },
+  // Ring Road reviews
+  {
+    id: "12",
+    road_id: "5",
+    user_id: "1",
+    score: 10,
+    text: "The trip of a lifetime. Plan at least 10 days.",
+    created_at: new Date(Date.now() - 86400000 * 90).toISOString()
+  },
+  {
+    id: "13",
+    road_id: "5",
+    user_id: "2",
+    score: 9,
+    text: "Every corner reveals something new - waterfalls, glaciers, volcanoes.",
+    created_at: new Date(Date.now() - 86400000 * 40).toISOString()
+  },
+  {
+    id: "14",
+    road_id: "5",
+    user_id: "3",
+    score: 9,
+    text: "Expensive but worth every penny. Pack warm clothes!",
+    created_at: new Date(Date.now() - 86400000 * 12).toISOString()
+  },
+  // Great Ocean Road reviews
+  {
+    id: "15",
+    road_id: "6",
+    user_id: "1",
+    score: 9,
+    text: "The Twelve Apostles are even more impressive in person.",
+    created_at: new Date(Date.now() - 86400000 * 50).toISOString()
+  },
+  {
+    id: "16",
+    road_id: "6",
+    user_id: "2",
+    score: 8,
+    text: "Beautiful drive but watch out for wildlife on the road.",
+    created_at: new Date(Date.now() - 86400000 * 22).toISOString()
+  },
+  // Route 66 reviews
+  {
+    id: "17",
+    road_id: "7",
+    user_id: "1",
+    score: 8,
+    text: "More about the journey and nostalgia than the road itself.",
+    created_at: new Date(Date.now() - 86400000 * 120).toISOString()
+  },
+  {
+    id: "18",
+    road_id: "7",
+    user_id: "2",
+    score: 9,
+    text: "Classic American road trip. Stop at all the odd roadside attractions.",
+    created_at: new Date(Date.now() - 86400000 * 55).toISOString()
+  },
+  // Dolomites Road reviews
+  {
+    id: "19",
+    road_id: "8",
+    user_id: "1",
+    score: 10,
+    text: "The most beautiful mountain scenery I've ever seen.",
+    created_at: new Date(Date.now() - 86400000 * 70).toISOString()
+  },
+  {
+    id: "20",
+    road_id: "8",
+    user_id: "2",
+    score: 9,
+    text: "Perfect for photographers. Every turn is a postcard.",
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString()
   }
 ];
 
@@ -298,33 +440,33 @@ export function createReview(review: Partial<Review>): Review {
     id: Date.now().toString(),
     road_id: review.road_id || '',
     user_id: review.user_id || '1',
-    ratings: review.ratings || { enjoyment: 5, scenery: 5, surface: 5, traffic: 5 },
+    score: review.score || 5,
     text: review.text || '',
     created_at: new Date().toISOString()
   };
-  
+
   reviews.push(newReview);
   localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
-  
+
   // Update road rating
   updateRoadRating(review.road_id || '');
-  
+
   return newReview;
 }
 
 export function updateRoadRating(roadId: string): void {
   const reviews = getReviews(roadId);
   const road = getRoad(roadId);
-  
+
   if (!road) return;
-  
+
   if (reviews.length === 0) {
     updateRoad(roadId, { rating_avg: 0, rating_count: 0 });
     return;
   }
-  
-  // Calculate average of enjoyment ratings
-  const avgRating = reviews.reduce((sum, r) => sum + r.ratings.enjoyment, 0) / reviews.length;
+
+  // Calculate average of scores
+  const avgRating = reviews.reduce((sum, r) => sum + r.score, 0) / reviews.length;
   updateRoad(roadId, { rating_avg: avgRating, rating_count: reviews.length });
 }
 

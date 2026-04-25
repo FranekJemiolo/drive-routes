@@ -15,15 +15,28 @@ INSERT INTO users (id, username, email, reputation_score, onboarding_state, onbo
 ('550e8400-e29b-41d4-a716-446655440002', 'motorcycle_rider', 'rider@example.com', 8.2, 'completed', 3, '{"prefers_twisty": true, "prefers_scenic": false, "avoids_highways": true, "tags": ["twisty", "technical"]}', '{"roads_rated": 23, "distance_driven_logged": 4200}')
 ON CONFLICT (id) DO NOTHING;
 
--- Insert sample reviews
-INSERT INTO reviews (user_id, road_id, ratings, text) 
-SELECT 
+-- Insert sample reviews with simplified single score
+INSERT INTO reviews (user_id, road_id, score, text)
+SELECT
   u.id as user_id,
   r.id as road_id,
-  '{"enjoyment": 8, "scenery": 9, "surface": 7, "traffic": 3}'::jsonb as ratings,
+  8 as score,
   'Amazing road with beautiful views and great corners!' as text
-FROM roads r 
-CROSS JOIN users u 
+FROM roads r
+CROSS JOIN users u
 WHERE u.username = 'road_enthusiast'
 LIMIT 3
+ON CONFLICT DO NOTHING;
+
+-- Add more sample reviews for variety
+INSERT INTO reviews (user_id, road_id, score, text)
+SELECT
+  u.id as user_id,
+  r.id as road_id,
+  9 as score,
+  'One of the best drives I''ve ever done. Highly recommended!' as text
+FROM roads r
+CROSS JOIN users u
+WHERE u.username = 'motorcycle_rider'
+LIMIT 2
 ON CONFLICT DO NOTHING;

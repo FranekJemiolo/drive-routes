@@ -1,9 +1,12 @@
 "use client";
 
-import { Road } from "../types";
+import { useState, useEffect } from "react";
+import { Road, Review } from "../types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { ReviewsList } from "./ReviewsList";
+import { fetchReviews } from "../lib/api";
 
 type Props = {
   road: Road;
@@ -11,6 +14,24 @@ type Props = {
 };
 
 export default function RoadPanel({ road, onClose }: Props) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  useEffect(() => {
+    async function loadReviews() {
+      setLoadingReviews(true);
+      try {
+        const data = await fetchReviews(road.id);
+        setReviews(data);
+      } catch (error) {
+        console.error("Failed to load reviews:", error);
+      } finally {
+        setLoadingReviews(false);
+      }
+    }
+    loadReviews();
+  }, [road.id]);
+
   function openInGoogleMaps() {
     const coords = road.geometry.coordinates;
     const start = coords[0];
@@ -169,6 +190,20 @@ export default function RoadPanel({ road, onClose }: Props) {
               Navigate with Apple Maps
             </Button>
           </div>
+
+          {/* Reviews Section */}
+          {loadingReviews ? (
+            <div className="text-slate-400 text-sm">Loading reviews...</div>
+          ) : (
+            <ReviewsList
+              roadId={road.id}
+              reviews={reviews}
+              onReviewsChange={async () => {
+                const data = await fetchReviews(road.id);
+                setReviews(data);
+              }}
+            />
+          )}
         </CardContent>
       </Card>
     </div>
