@@ -14,6 +14,11 @@ export async function safeFetch(url: string): Promise<any | null> {
   }
 }
 
+export async function fetchRoads(): Promise<Road[]> {
+  const data = await safeFetch(`${API_URL}/roads`);
+  return data || [];
+}
+
 export async function fetchRoadsInBBox(bbox: number[] | null): Promise<Road[]> {
   const url = bbox 
     ? `${API_URL}/roads?bbox=${bbox.join(",")}` 
