@@ -14,9 +14,14 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-// Initialize browser storage on client side
-if (typeof window !== 'undefined') {
-  initializeBrowserStorage();
+// Initialize browser storage on client side only
+let storageInitialized = false;
+
+function ensureStorageInitialized() {
+  if (typeof window !== 'undefined' && !storageInitialized) {
+    initializeBrowserStorage();
+    storageInitialized = true;
+  }
 }
 
 export async function safeFetch(url: string): Promise<any | null> {
@@ -33,6 +38,7 @@ export async function safeFetch(url: string): Promise<any | null> {
 export async function fetchRoads(): Promise<Road[]> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
+    ensureStorageInitialized();
     return getBrowserRoads();
   }
   
@@ -43,6 +49,7 @@ export async function fetchRoads(): Promise<Road[]> {
 export async function fetchRoadsInBBox(bbox: number[] | null): Promise<Road[]> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
+    ensureStorageInitialized();
     return getBrowserRoads();
   }
   
@@ -57,6 +64,7 @@ export async function fetchRoadsInBBox(bbox: number[] | null): Promise<Road[]> {
 export async function fetchRoadDetail(id: string): Promise<Road | null> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
+    ensureStorageInitialized();
     return getBrowserRoad(id);
   }
   
@@ -67,6 +75,7 @@ export async function fetchRoadDetail(id: string): Promise<Road | null> {
 export async function createRoad(road: Partial<Road>): Promise<Road | null> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
+    ensureStorageInitialized();
     return createBrowserRoad(road);
   }
   
@@ -97,6 +106,7 @@ export async function createRoad(road: Partial<Road>): Promise<Road | null> {
 export async function fetchReviews(roadId: string): Promise<Review[]> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
+    ensureStorageInitialized();
     return getBrowserReviews(roadId);
   }
   
@@ -107,6 +117,7 @@ export async function fetchReviews(roadId: string): Promise<Review[]> {
 export async function createReview(review: Partial<Review>): Promise<Review | null> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
+    ensureStorageInitialized();
     return createBrowserReview(review);
   }
   
