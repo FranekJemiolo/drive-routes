@@ -3,9 +3,7 @@
 import { Road } from "../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { useEffect, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   road: Road;
@@ -15,10 +13,22 @@ export default function RoadCard({ road }: Props) {
   const rating = Number(road.rating_avg);
   const length = Number(road.length_km);
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const [L, setL] = useState<any>(null);
+  const [leafletCss, setLeafletCss] = useState<any>(null);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    // Dynamic import Leaflet only on client side
+    import("leaflet").then((leaflet) => {
+      setL(leaflet.default);
+    });
+    import("leaflet/dist/leaflet.css").then(() => {
+      setLeafletCss(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !L) return;
 
     // Initialize map
     const map = L.map(mapRef.current, {
@@ -64,7 +74,7 @@ export default function RoadCard({ road }: Props) {
         mapInstanceRef.current = null;
       }
     };
-  }, [road.geometry]);
+  }, [road.geometry, L]);
 
   return (
     <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer">
