@@ -28,7 +28,13 @@ export default function LeafletMap({ onSelectRoad }: Props) {
       const map = L.map(mapContainerRef.current, {
         center: [37.7749, -122.4194],
         zoom: 4,
+        zoomControl: false, // Disable default zoom control
       });
+
+      // Add custom zoom control in top-right corner
+      L.control.zoom({
+        position: 'topright'
+      }).addTo(map);
 
       // Set z-index to ensure navbar stays on top
       const mapContainer = mapContainerRef.current;
@@ -125,14 +131,14 @@ export default function LeafletMap({ onSelectRoad }: Props) {
   }, [roads, onSelectRoad]);
 
   return (
-    <div className="w-full relative" style={{ height: "100vh", zIndex: 0 }}>
+    <div className="w-full relative" style={{ height: "100vh", paddingTop: "64px", zIndex: 0 }}>
       {/* Debug info */}
       <div className="absolute bottom-4 left-4 z-10 bg-slate-900/90 backdrop-blur-md border border-slate-800 px-4 py-2 rounded-lg text-white text-sm shadow-lg">
         <span className="text-slate-400">Roads loaded:</span> <span className="font-semibold text-green-400">{roads.length}</span>
       </div>
 
       {isClient ? (
-        <div ref={mapContainerRef} className="h-full w-full" style={{ minHeight: "500px", zIndex: 0 }} />
+        <div ref={mapContainerRef} className="h-full w-full" style={{ minHeight: "calc(100vh - 64px)", zIndex: 0 }} />
       ) : (
         <div className="h-full w-full flex items-center justify-center text-white">
           Loading map...
