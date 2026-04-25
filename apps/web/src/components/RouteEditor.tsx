@@ -119,14 +119,16 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Country</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Country Code</label>
               <input
                 type="text"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                 placeholder="e.g., US, DE, AT"
+                maxLength={2}
               />
+              <p className="text-xs text-slate-500 mt-1">2-letter ISO code (e.g., US, DE, AT)</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1">Region</label>
@@ -137,6 +139,7 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                 placeholder="e.g., California, Bavaria"
               />
+              <p className="text-xs text-slate-500 mt-1">Full region name (e.g., California, Bavaria)</p>
             </div>
           </div>
 
