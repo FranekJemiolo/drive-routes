@@ -3,6 +3,7 @@ import { Road, Review } from "../types";
 const STORAGE_KEYS = {
   ROADS: 'drive_routes_roads',
   REVIEWS: 'drive_routes_reviews',
+  SAVED_ROUTES: 'drive_routes_saved',
   INITIALIZED: 'drive_routes_initialized'
 };
 
@@ -413,6 +414,55 @@ export function deleteRoad(id: string): boolean {
   
   localStorage.setItem(STORAGE_KEYS.ROADS, JSON.stringify(filtered));
   return true;
+}
+
+// Saved Routes (user's liked/saved routes)
+export function getSavedRoutes(userId: string): string[] {
+  if (typeof window === 'undefined') return [];
+  const data = localStorage.getItem(STORAGE_KEYS.SAVED_ROUTES);
+  const saved: Record<string, string[]> = data ? JSON.parse(data) : {};
+  return saved[userId] || [];
+}
+
+export function saveRoute(userId: string, roadId: string): void {
+  const saved = localStorage.getItem(STORAGE_KEYS.SAVED_ROUTES);
+  const savedMap: Record<string, string[]> = saved ? JSON.parse(saved) : {};
+  
+  if (!savedMap[userId]) {
+    savedMap[userId] = [];
+  }
+  
+  if (!savedMap[userId].includes(roadId)) {
+    savedMap[userId].push(roadId);
+    localStorage.setItem(STORAGE_KEYS.SAVED_ROUTES, JSON.stringify(savedMap));
+    
+    // Increment save_count on the road
+    const road = getRoad(roadId);
+    if (road) {
+      updateRoad(roadId, { save_count: (road.save_count || 0) + 1 });
+    }
+  }
+}
+
+export function unsaveRoute(userId: string, roadId: string): void {
+  const saved = localStorage.getItem(STORAGE_KEYS.SAVED_ROUTES);
+  const savedMap: Record<string, string[]> = saved ? JSON.parse(saved) : {};
+  
+  if (savedMap[userId]) {
+    savedMap[userId] = savedMap[userId].filter(id => id !== roadId);
+    localStorage.setItem(STORAGE_KEYS.SAVED_ROUTES, JSON.stringify(savedMap));
+    
+    // Decrement save_count on the road
+    const road = getRoad(roadId);
+    if (road && road.save_count > 0) {
+      updateRoad(roadId, { save_count: road.save_count - 1 });
+    }
+  }
+}
+
+export function isRouteSaved(userId: string, roadId: string): boolean {
+  const savedRoutes = getSavedRoutes(userId);
+  return savedRoutes.includes(roadId);
 }
 
 // Reviews CRUD

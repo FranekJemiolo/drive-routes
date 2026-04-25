@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/
 import { Badge } from "./ui/badge";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isAuthenticated, getUser } from "../lib/auth";
+import { isRouteSaved, saveRoute, unsaveRoute } from "../lib/browser-storage";
 
 type Props = {
   road: Road;
@@ -18,6 +20,34 @@ export default function RoadCard({ road }: Props) {
   const mapInstanceRef = useRef<any>(null);
   const [L, setL] = useState<any>(null);
   const [leafletCss, setLeafletCss] = useState<any>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setAuthenticated(isAuthenticated());
+    if (isAuthenticated()) {
+      const user = getUser();
+      if (user) {
+        setIsSaved(isRouteSaved(user.id, road.id));
+      }
+    }
+  }, [road.id]);
+
+  const handleSaveToggle = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    if (!authenticated) return;
+    
+    const user = getUser();
+    if (!user) return;
+
+    if (isSaved) {
+      unsaveRoute(user.id, road.id);
+      setIsSaved(false);
+    } else {
+      saveRoute(user.id, road.id);
+      setIsSaved(true);
+    }
+  };
 
   useEffect(() => {
     // Dynamic import Leaflet only on client side
@@ -102,7 +132,24 @@ export default function RoadCard({ road }: Props) {
           }`}>
             ★ {rating.toFixed(1)}
           </div>
-          <span className="text-slate-400 text-sm">{length.toFixed(1)} km</span>
+          <div className="flex items-center gap-3">
+            <span className="text-slate-400 text-sm">{length.toFixed(1)} km</span>
+            {authenticated && (
+              <button
+                onClick={handleSaveToggle}
+                className={`p-2 rounded-full transition-colors ${
+                  isSaved 
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                }`}
+                title={isSaved ? "Remove from saved" : "Save route"}
+              >
+                <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tags */}
