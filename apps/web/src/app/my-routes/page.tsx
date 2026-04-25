@@ -11,8 +11,15 @@ export default function MyRoutesPage() {
   const [createdRoads, setCreatedRoads] = useState<Road[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'saved' | 'created'>('saved');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     if (!isAuthenticated()) {
       setLoading(false);
       return;
@@ -32,7 +39,17 @@ export default function MyRoutesPage() {
       setSavedRoads(savedRoadsData);
     }
     setLoading(false);
-  }, []);
+  }, [mounted]);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-slate-950 pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center text-slate-400">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated()) {
     return (
