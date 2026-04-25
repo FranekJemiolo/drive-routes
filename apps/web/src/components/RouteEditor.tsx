@@ -38,6 +38,29 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
     setMounted(true);
   }, []);
 
+  // Calculate distance between two coordinates in km using Haversine formula
+  const calculateDistance = (coord1: [number, number], coord2: [number, number]): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (coord2[1] - coord1[1]) * Math.PI / 180;
+    const dLon = (coord2[0] - coord1[0]) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(coord1[1] * Math.PI / 180) * Math.cos(coord2[1] * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Calculate total length from geometry
+  const calculateLength = (coords: [number, number][]): number => {
+    if (coords.length < 2) return 0;
+    let totalLength = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      totalLength += calculateDistance(coords[i], coords[i + 1]);
+    }
+    return totalLength;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -53,12 +76,16 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
       // Parse tags from comma-separated string
       const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
       
+      // Calculate length from geometry
+      const lengthKm = calculateLength(geometry.coordinates);
+      
       const user = getUser();
       
       await createRoad({
         name,
         description,
         geometry,
+        length_km: lengthKm,
         tags: tagsArray,
         countries: country ? [country] : [],
         region
