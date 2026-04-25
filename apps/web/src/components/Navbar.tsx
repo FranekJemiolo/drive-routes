@@ -109,7 +109,7 @@ export default function Navbar() {
 
       {/* Sign In Modal */}
       {showSignInModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pt-20">
           <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-xl font-bold text-white mb-4">{isRegisterMode ? "Register" : "Sign In"}</h2>
             {error && (
