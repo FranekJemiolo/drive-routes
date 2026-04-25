@@ -30,7 +30,7 @@ jobs:
       - name: Build frontend
         run: |
           cd apps/web
-          npm run build
+          NEXT_PUBLIC_BASE_PATH=/drive-routes npm run build
 
       - name: Deploy frontend to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
