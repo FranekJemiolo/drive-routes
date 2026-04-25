@@ -154,7 +154,7 @@ export default function Navbar() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={8}
+                  minLength={isRegisterMode ? 8 : undefined}
                   className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="••••••••"
                 />
