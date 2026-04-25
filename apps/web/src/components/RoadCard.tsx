@@ -4,12 +4,14 @@ import { Road } from "../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   road: Road;
 };
 
 export default function RoadCard({ road }: Props) {
+  const router = useRouter();
   const rating = Number(road.rating_avg);
   const length = Number(road.length_km);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -77,7 +79,10 @@ export default function RoadCard({ road }: Props) {
   }, [road.geometry, L]);
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer">
+    <Card 
+      className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer"
+      onClick={() => router.push(`/roads/${road.id}`)}
+    >
       <CardHeader>
         <CardTitle className="text-white text-lg">{road.name}</CardTitle>
         <CardDescription className="text-slate-400">
