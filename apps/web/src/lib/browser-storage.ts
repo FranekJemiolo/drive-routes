@@ -18,8 +18,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[-122.4194, 37.7749], [-122.4783, 37.8199], [-122.5110, 37.7749]]
     },
     length_km: 120.7,
-    rating_avg: 9.0,
-    rating_count: 3,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 89,
     tags: ["scenic", "coastal", "curves"],
     countries: ["USA"],
@@ -36,8 +36,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[10.4256, 46.5256], [10.4489, 46.5156], [10.4756, 46.5056]]
     },
     length_km: 75.5,
-    rating_avg: 9.33,
-    rating_count: 3,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 156,
     tags: ["mountain", "curves", "scenic"],
     countries: ["Italy"],
@@ -54,8 +54,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[24.6167, 45.6167], [24.6333, 45.6333], [24.6500, 45.6500]]
     },
     length_km: 90.0,
-    rating_avg: 9.0,
-    rating_count: 3,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 112,
     tags: ["mountain", "scenic", "curves"],
     countries: ["Romania"],
@@ -72,8 +72,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[7.1667, 62.6167], [7.1833, 62.6333], [7.2000, 62.6500]]
     },
     length_km: 55.0,
-    rating_avg: 8.5,
-    rating_count: 2,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 78,
     tags: ["mountain", "scenic", "curves"],
     countries: ["Norway"],
@@ -90,8 +90,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[-19.0167, 64.9167], [-19.0333, 64.9333], [-19.0500, 64.9500]]
     },
     length_km: 1332.0,
-    rating_avg: 9.33,
-    rating_count: 3,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 201,
     tags: ["scenic", "epic", "adventure"],
     countries: ["Iceland"],
@@ -108,8 +108,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[143.4167, -38.7167], [143.4333, -38.7333], [143.4500, -38.7500]]
     },
     length_km: 243.0,
-    rating_avg: 8.5,
-    rating_count: 2,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 134,
     tags: ["scenic", "coastal", "curves"],
     countries: ["Australia"],
@@ -126,8 +126,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[-87.6167, 41.8167], [-87.6333, 41.8333], [-87.6500, 41.8500]]
     },
     length_km: 3940.0,
-    rating_avg: 8.5,
-    rating_count: 2,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 267,
     tags: ["historic", "epic", "adventure"],
     countries: ["USA"],
@@ -144,8 +144,8 @@ const DEMO_ROADS: Road[] = [
       coordinates: [[11.9167, 46.4167], [11.9333, 46.4333], [11.9500, 46.4500]]
     },
     length_km: 110.0,
-    rating_avg: 9.5,
-    rating_count: 2,
+    rating_avg: 0,
+    rating_count: 0,
     save_count: 189,
     tags: ["mountain", "scenic", "curves"],
     countries: ["Italy"],
@@ -338,6 +338,16 @@ export function initializeBrowserStorage(): void {
       localStorage.setItem(STORAGE_KEYS.ROADS, JSON.stringify(DEMO_ROADS));
       localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(DEMO_REVIEWS));
       localStorage.setItem(STORAGE_KEYS.SAVED_ROUTES, JSON.stringify({}));
+      
+      // Calculate ratings from actual reviews
+      DEMO_ROADS.forEach(road => {
+        const roadReviews = DEMO_REVIEWS.filter(r => r.road_id === road.id);
+        if (roadReviews.length > 0) {
+          const avgRating = roadReviews.reduce((sum, r) => sum + r.score, 0) / roadReviews.length;
+          updateRoad(road.id, { rating_avg: avgRating, rating_count: roadReviews.length });
+        }
+      });
+      
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
       console.log('[Browser Storage] Initialized with', DEMO_ROADS.length, 'roads and', DEMO_REVIEWS.length, 'reviews');
       
