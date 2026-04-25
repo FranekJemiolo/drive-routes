@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS roads (
     description TEXT,
     geometry GEOMETRY(LineString, 4326) NOT NULL,
     tags TEXT[] DEFAULT '{}',
-    country VARCHAR(2),
+    countries TEXT[] DEFAULT '{}',
     region VARCHAR(100),
     length_km DECIMAL(8,3),
     rating_avg DECIMAL(3,2) DEFAULT 0.0,
