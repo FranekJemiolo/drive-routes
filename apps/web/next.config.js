@@ -1,8 +1,12 @@
 /** @type {import('next').NextConfig} */
+const isProduction = process.env.NODE_ENV === 'production';
+const basePath = isProduction ? '/drive-routes' : '';
+const assetPrefix = isProduction ? '/drive-routes' : '';
+
 const nextConfig = {
   output: 'export',
-  basePath: '/drive-routes',
-  assetPrefix: '/drive-routes',
+  basePath,
+  assetPrefix,
   trailingSlash: true,
   images: {
     unoptimized: true
