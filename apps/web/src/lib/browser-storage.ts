@@ -191,12 +191,24 @@ export function initializeBrowserStorage(): void {
   
   if (!initialized) {
     console.log('[Browser Storage] Initializing with demo data');
-    localStorage.setItem(STORAGE_KEYS.ROADS, JSON.stringify(DEMO_ROADS));
-    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(DEMO_REVIEWS));
-    localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
-    console.log('[Browser Storage] Initialized with', DEMO_ROADS.length, 'roads and', DEMO_REVIEWS.length, 'reviews');
+    try {
+      localStorage.setItem(STORAGE_KEYS.ROADS, JSON.stringify(DEMO_ROADS));
+      localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(DEMO_REVIEWS));
+      localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+      console.log('[Browser Storage] Initialized with', DEMO_ROADS.length, 'roads and', DEMO_REVIEWS.length, 'reviews');
+      
+      // Verify the data was stored
+      const storedRoads = localStorage.getItem(STORAGE_KEYS.ROADS);
+      console.log('[Browser Storage] Verification - stored roads length:', storedRoads ? JSON.parse(storedRoads).length : 0);
+    } catch (error) {
+      console.error('[Browser Storage] Failed to initialize:', error);
+    }
   } else {
     console.log('[Browser Storage] Already initialized');
+    
+    // Verify existing data
+    const storedRoads = localStorage.getItem(STORAGE_KEYS.ROADS);
+    console.log('[Browser Storage] Verification - existing roads length:', storedRoads ? JSON.parse(storedRoads).length : 0);
   }
 }
 
