@@ -80,11 +80,11 @@ export async function fetchRoadDetail(id: string): Promise<Road | null> {
   return data;
 }
 
-export async function createRoad(road: Partial<Road>): Promise<Road | null> {
+export async function createRoad(road: Partial<Road>, userId?: string): Promise<Road | null> {
   // For static GitHub Pages deployment, use browser storage
   if (isBrowserMode()) {
     ensureStorageInitialized();
-    return createBrowserRoad(road);
+    return createBrowserRoad(road, userId);
   }
   
   try {

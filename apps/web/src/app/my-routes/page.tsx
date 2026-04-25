@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Road } from "../../types";
 import RoadCard from "../../components/RoadCard";
 import { isAuthenticated, getUser } from "../../lib/auth";
+import { getRoadsByUserId } from "../../lib/browser-storage";
 
 export default function MyRoutesPage() {
   const [savedRoads, setSavedRoads] = useState<Road[]>([]);
@@ -15,8 +16,11 @@ export default function MyRoutesPage() {
       return;
     }
 
-    // In demo mode, show empty state
-    // In production, this would fetch from the API
+    const user = getUser();
+    if (user) {
+      const userRoads = getRoadsByUserId(user.id);
+      setSavedRoads(userRoads);
+    }
     setLoading(false);
   }, []);
 

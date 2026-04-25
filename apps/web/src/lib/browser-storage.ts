@@ -357,19 +357,13 @@ export function initializeBrowserStorage(): void {
 // Roads CRUD
 export function getRoads(): Road[] {
   if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.ROADS);
-    if (!data) {
-      console.error('[Browser Storage] No roads data found in localStorage');
-      return [];
-    }
-    const roads = JSON.parse(data);
-    console.log('[Browser Storage] getRoads returned', roads.length, 'roads');
-    return roads;
-  } catch (error) {
-    console.error('[Browser Storage] Failed to get roads:', error);
-    return [];
-  }
+  const data = localStorage.getItem(STORAGE_KEYS.ROADS);
+  return data ? JSON.parse(data) : [];
+}
+
+export function getRoadsByUserId(userId: string): Road[] {
+  const roads = getRoads();
+  return roads.filter(r => r.created_by === userId);
 }
 
 export function getRoad(id: string): Road | null {
@@ -377,7 +371,7 @@ export function getRoad(id: string): Road | null {
   return roads.find(r => r.id === id) || null;
 }
 
-export function createRoad(road: Partial<Road>): Road {
+export function createRoad(road: Partial<Road>, userId?: string): Road {
   const roads = getRoads();
   const newRoad: Road = {
     id: Date.now().toString(),
@@ -391,7 +385,7 @@ export function createRoad(road: Partial<Road>): Road {
     tags: road.tags || [],
     countries: road.countries || [],
     region: road.region || '',
-    created_by: road.created_by || '1',
+    created_by: userId || road.created_by || '1',
     created_at: new Date().toISOString()
   };
   

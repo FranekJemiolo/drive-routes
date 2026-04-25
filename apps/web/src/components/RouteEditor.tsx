@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { createPortal } from "react-dom";
 import { createRoad } from "../lib/api";
+import { getUser } from "../lib/auth";
 import dynamic from "next/dynamic";
 
 const MapDrawing = dynamic(() => import("./MapDrawing"), {
@@ -52,6 +53,8 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
       // Parse tags from comma-separated string
       const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
       
+      const user = getUser();
+      
       await createRoad({
         name,
         description,
@@ -59,7 +62,7 @@ export function RouteEditor({ isOpen, onClose, onRouteCreated }: RouteEditorProp
         tags: tagsArray,
         countries: country ? [country] : [],
         region
-      });
+      }, user?.id);
 
       // Reset form
       setName("");
