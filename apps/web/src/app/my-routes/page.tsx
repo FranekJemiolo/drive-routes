@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Road } from "../../types";
 import RoadCard from "../../components/RoadCard";
+import Navbar from "../../components/Navbar";
 import { isAuthenticated, getUser } from "../../lib/auth";
 import { getRoadsByUserId, getSavedRoutes, getRoad } from "../../lib/browser-storage";
 
@@ -44,7 +45,8 @@ export default function MyRoutesPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-slate-950 pt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20">
           <div className="text-center text-slate-400">Loading...</div>
         </div>
       </div>
@@ -54,7 +56,8 @@ export default function MyRoutesPage() {
   if (!isAuthenticated()) {
     return (
       <div className="min-h-screen bg-slate-950 pt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-white mb-4">My Routes</h1>
             <p className="text-slate-400">Please sign in to view your saved routes.</p>
@@ -67,7 +70,8 @@ export default function MyRoutesPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 pt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20">
           <div className="text-center text-slate-400">Loading...</div>
         </div>
       </div>
@@ -75,8 +79,9 @@ export default function MyRoutesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen bg-slate-950">
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20">
         <h1 className="text-3xl font-bold text-white mb-8">My Routes</h1>
         
         {/* Tabs */}
