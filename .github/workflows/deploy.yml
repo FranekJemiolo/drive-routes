@@ -27,6 +27,9 @@ jobs:
       - name: Typecheck frontend
         run: cd apps/web && npm run type-check
 
+      - name: Run tests
+        run: cd apps/web && npm test
+
       - name: Build frontend
         run: |
           cd apps/web
