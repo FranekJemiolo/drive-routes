@@ -1,8 +1,8 @@
 "use client";
 
-import { MapContainer, TileLayer, Polyline, useMapEvents, Popup } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Road } from "../../types";
 import { fetchRoadsInBBox } from "../../lib/api";
 
@@ -12,11 +12,44 @@ type Props = {
 
 export default function LeafletMap({ onSelectRoad }: Props) {
   const [roads, setRoads] = useState<Road[]>([]);
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
+  const layersRef = useRef<L.Polyline[]>([]);
 
-  // Load roads by viewport
-  function MapEvents() {
-    const map = useMapEvents({
-      moveend: async () => {
+  // Initialize map
+  useEffect(() => {
+    setIsClient(true);
+
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    try {
+      // Create map
+      const map = L.map(mapContainerRef.current, {
+        center: [37.7749, -122.4194],
+        zoom: 4,
+      });
+
+      // Set z-index to ensure navbar stays on top
+      const mapContainer = mapContainerRef.current;
+      if (mapContainer) {
+        mapContainer.style.zIndex = '0';
+      }
+
+      // Add tile layer
+      const tileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      });
+
+      tileLayer.addTo(map);
+
+      // Invalidate size to ensure proper rendering
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+
+      // Handle move end to load roads
+      map.on("moveend", async () => {
         const bounds = map.getBounds();
         const bbox = [
           bounds.getWest(),
@@ -26,12 +59,23 @@ export default function LeafletMap({ onSelectRoad }: Props) {
         ];
         const data = await fetchRoadsInBBox(bbox);
         setRoads(data);
-      },
-    });
-    return null;
-  }
+      });
 
-  // Initial load
+      mapRef.current = map;
+
+    } catch (error) {
+      console.error("Error initializing map:", error);
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [isClient]);
+
+  // Load initial roads
   useEffect(() => {
     async function init() {
       const res = await fetchRoadsInBBox(null);
@@ -40,61 +84,67 @@ export default function LeafletMap({ onSelectRoad }: Props) {
     init();
   }, []);
 
+  // Update map when roads change
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Remove existing layers
+    layersRef.current.forEach(layer => layer.remove());
+    layersRef.current = [];
+
+    // Add new layers
+    roads.forEach((road) => {
+      if (!mapRef.current) return;
+      
+      const coordinates = road.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]);
+      const polyline = L.polyline(coordinates, {
+        color: getRoadColor(road.rating_avg),
+        weight: 4,
+        opacity: 0.85,
+      }).addTo(mapRef.current);
+
+      // Add click handler
+      polyline.on("click", () => onSelectRoad?.(road));
+
+      // Add popup
+      const popup = L.popup()
+        .setLatLng(coordinates[0])
+        .setContent(`
+          <div style="color: #1e293b;">
+            <div style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.25rem;">${road.name}</div>
+            <div style="font-size: 0.875rem; color: #475569; margin-bottom: 0.5rem;">★ ${Number(road.rating_avg).toFixed(1)}</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+              ${road.tags.map(tag => `<span style="display: inline-block; background: #e2e8f0; color: #334155; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500;">${tag}</span>`).join('')}
+            </div>
+          </div>
+        `);
+
+      polyline.bindPopup(popup);
+      layersRef.current.push(polyline);
+    });
+  }, [roads, onSelectRoad]);
+
   return (
-    <div className="w-full h-screen">
-      <MapContainer
-        center={[52.2297, 21.0122]}
-        zoom={10}
-        className="h-full w-full"
-      >
-        {/* OpenStreetMap BASE LAYER (FREE) */}
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+    <div className="w-full relative" style={{ height: "100vh", zIndex: 0 }}>
+      {/* Debug info */}
+      <div className="absolute bottom-4 left-4 z-10 bg-slate-900/90 backdrop-blur-md border border-slate-800 px-4 py-2 rounded-lg text-white text-sm shadow-lg">
+        <span className="text-slate-400">Roads loaded:</span> <span className="font-semibold text-green-400">{roads.length}</span>
+      </div>
 
-        {/* viewport listener */}
-        <MapEvents />
-
-        {/* ROAD RENDERING */}
-        {roads.map((road) => (
-          <Polyline
-            key={road.id}
-            positions={road.geometry.coordinates.map(([lng, lat]) => [
-              lat,
-              lng,
-            ])}
-            pathOptions={{
-              color: getRoadColor(road.rating_avg),
-              weight: 4,
-              opacity: 0.85,
-            }}
-            eventHandlers={{
-              click: () => onSelectRoad?.(road),
-            }}
-          >
-            <Popup>
-              <div>
-                <strong>{road.name}</strong>
-                <br />
-                Rating: {road.rating_avg}
-                <br />
-                {road.tags.map(tag => (
-                  <span key={tag} className="inline-block bg-gray-200 rounded px-2 py-1 text-xs mr-1">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </Popup>
-          </Polyline>
-        ))}
-      </MapContainer>
+      {isClient ? (
+        <div ref={mapContainerRef} className="h-full w-full" style={{ minHeight: "500px", zIndex: 0 }} />
+      ) : (
+        <div className="h-full w-full flex items-center justify-center text-white">
+          Loading map...
+        </div>
+      )}
     </div>
   );
 }
 
-function getRoadColor(rating: number) {
-  if (rating >= 8) return "#22c55e"; // green
-  if (rating >= 5) return "#f59e0b"; // orange
+function getRoadColor(rating: number | string) {
+  const numRating = parseFloat(String(rating));
+  if (numRating >= 8) return "#22c55e"; // green
+  if (numRating >= 5) return "#f59e0b"; // orange
   return "#ef4444"; // red
 }

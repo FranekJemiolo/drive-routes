@@ -2,7 +2,7 @@ export type Road = {
   id: string;
   name: string;
   description?: string;
-  rating_avg: number;
+  rating_avg: number | string;
   rating_count: number;
   save_count: number;
   geometry: {
@@ -12,8 +12,8 @@ export type Road = {
   tags: string[];
   country: string;
   region?: string;
-  length_km: number;
-  created_by: string;
+  length_km: number | string;
+  created_by: string | null;
   created_at: string;
 };
 

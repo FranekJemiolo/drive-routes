@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Road } from "../types";
 import RoadPanel from "../components/RoadPanel";
+import Navbar from "../components/Navbar";
 
 const LeafletMap = dynamic(() => import("../components/map/LeafletMap"), {
   ssr: false,
@@ -15,23 +16,15 @@ export default function HomePage() {
 
   return (
     <div className="relative w-full h-screen">
-      <LeafletMap onSelectRoad={setSelectedRoad} />
+      <Navbar />
       
-      {/* Header */}
-      <div className="absolute top-4 left-4 z-10">
-        <h1 className="text-2xl font-bold text-white bg-black/50 px-4 py-2 rounded">
-          DriveRoutes
-        </h1>
-        <p className="text-sm text-gray-300 bg-black/50 px-4 py-1 rounded">
-          Discover the best driving roads
-        </p>
-      </div>
+      <LeafletMap onSelectRoad={setSelectedRoad} />
 
       {/* Road Info Panel */}
       {selectedRoad && (
-        <RoadPanel 
-          road={selectedRoad} 
-          onClose={() => setSelectedRoad(null)} 
+        <RoadPanel
+          road={selectedRoad}
+          onClose={() => setSelectedRoad(null)}
         />
       )}
     </div>
