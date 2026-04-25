@@ -337,6 +337,7 @@ export function initializeBrowserStorage(): void {
     try {
       localStorage.setItem(STORAGE_KEYS.ROADS, JSON.stringify(DEMO_ROADS));
       localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(DEMO_REVIEWS));
+      localStorage.setItem(STORAGE_KEYS.SAVED_ROUTES, JSON.stringify({}));
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
       console.log('[Browser Storage] Initialized with', DEMO_ROADS.length, 'roads and', DEMO_REVIEWS.length, 'reviews');
       
