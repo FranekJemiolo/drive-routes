@@ -25,10 +25,13 @@ jobs:
           cache: 'npm'
       
       - name: Install dependencies
-        run: npm ci
+        run: npm run install:all
       
-      - name: Seed demo database
-        run: cd apps/api && npx tsx scripts/seed-demo-db.ts
+      - name: Typecheck frontend
+        run: cd apps/web && npm run type-check
+
+      - name: Run tests
+        run: cd apps/web && npm test
       
       - name: Build web app
         run: cd apps/web && npm run build
