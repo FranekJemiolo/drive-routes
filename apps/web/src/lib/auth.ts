@@ -12,7 +12,30 @@ export interface AuthResponse {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+// Demo mode check
+export function isDemoMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === 'franekjemiolo.github.io' || !API_URL.includes('localhost');
+}
+
 export async function register(email: string, username: string, password: string): Promise<AuthResponse> {
+  // Demo mode: create demo user
+  if (isDemoMode()) {
+    const user: User = {
+      id: 'demo-user',
+      email,
+      username
+    };
+    setUser(user);
+    setToken('demo-token');
+    return {
+      message: 'Demo registration successful',
+      token: 'demo-token',
+      user
+    };
+  }
+
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,6 +51,22 @@ export async function register(email: string, username: string, password: string
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
+  // Demo mode: accept any credentials
+  if (isDemoMode()) {
+    const user: User = {
+      id: 'demo-user',
+      email,
+      username: email.split('@')[0]
+    };
+    setUser(user);
+    setToken('demo-token');
+    return {
+      message: 'Demo login successful',
+      token: 'demo-token',
+      user
+    };
+  }
+
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
