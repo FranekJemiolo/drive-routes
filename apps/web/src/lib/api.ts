@@ -38,11 +38,14 @@ export async function createRoad(road: Partial<Road>): Promise<Road | null> {
       body: JSON.stringify(road),
     });
     
-    if (!res.ok) throw new Error("Failed to create road");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || "Failed to create road");
+    }
     return await res.json();
   } catch (e) {
     console.error("Create road error:", e);
-    return null;
+    throw e; // Re-throw to allow caller to handle error
   }
 }
 
@@ -81,10 +84,13 @@ export async function importGPX(gpxText: string, name: string): Promise<Road[] |
       body: JSON.stringify({ gpxText, name, tags: ["user-imported"] }),
     });
     
-    if (!res.ok) throw new Error("Failed to import GPX");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || "Failed to import GPX");
+    }
     return await res.json();
   } catch (e) {
     console.error("GPX import error:", e);
-    return null;
+    throw e; // Re-throw to allow caller to handle error
   }
 }

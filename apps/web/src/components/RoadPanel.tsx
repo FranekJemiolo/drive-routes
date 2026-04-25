@@ -15,8 +15,30 @@ export default function RoadPanel({ road, onClose }: Props) {
     const coords = road.geometry.coordinates;
     const start = coords[0];
     const end = coords[coords.length - 1];
-
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${start[1]},${start[0]}&destination=${end[1]},${end[0]}`;
+    
+    // Google Maps supports up to 8 waypoints (excluding origin and destination)
+    // We'll sample points along the route to create waypoints
+    const maxWaypoints = 8;
+    const totalPoints = coords.length;
+    
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${start[1]},${start[0]}&destination=${end[1]},${end[0]}`;
+    
+    // Add waypoints if route has enough points
+    if (totalPoints > 2) {
+      const step = Math.floor((totalPoints - 2) / Math.min(maxWaypoints, totalPoints - 2));
+      const waypoints: string[] = [];
+      
+      for (let i = 1; i < totalPoints - 1; i += step) {
+        if (waypoints.length >= maxWaypoints) break;
+        const point = coords[i];
+        waypoints.push(`${point[1]},${point[0]}`);
+      }
+      
+      if (waypoints.length > 0) {
+        url += `&waypoints=${waypoints.join('|')}`;
+      }
+    }
+    
     window.open(url, "_blank");
   }
 
@@ -24,8 +46,29 @@ export default function RoadPanel({ road, onClose }: Props) {
     const coords = road.geometry.coordinates;
     const start = coords[0];
     const end = coords[coords.length - 1];
-
-    const url = `http://maps.apple.com/?saddr=${start[1]},${start[0]}&daddr=${end[1]},${end[0]}`;
+    
+    // Apple Maps supports up to 3 waypoints (excluding origin and destination)
+    const maxWaypoints = 3;
+    const totalPoints = coords.length;
+    
+    let url = `http://maps.apple.com/?saddr=${start[1]},${start[0]}&daddr=${end[1]},${end[0]}`;
+    
+    // Add waypoints if route has enough points
+    if (totalPoints > 2) {
+      const step = Math.floor((totalPoints - 2) / Math.min(maxWaypoints, totalPoints - 2));
+      const waypoints: string[] = [];
+      
+      for (let i = 1; i < totalPoints - 1; i += step) {
+        if (waypoints.length >= maxWaypoints) break;
+        const point = coords[i];
+        waypoints.push(`${point[1]},${point[0]}`);
+      }
+      
+      if (waypoints.length > 0) {
+        url += `&dirflg=d&${waypoints.map((wp, idx) => `dirflg=d&${idx === 0 ? 'daddr' : 'to'}=${wp}`).join('&')}`;
+      }
+    }
+    
     window.open(url, "_blank");
   }
 

@@ -1,8 +1,26 @@
 "use client";
 
 import { Button } from "./ui/button";
+import { isAuthenticated, logout } from "../lib/auth";
+import { useState, useEffect } from "react";
 
 export default function Navbar() {
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setAuthenticated(isAuthenticated());
+  }, []);
+
+  const handleAuthClick = () => {
+    if (authenticated) {
+      logout();
+      setAuthenticated(false);
+    } else {
+      // TODO: Implement sign in flow
+      console.log('Sign in clicked');
+    }
+  };
+
   return (
     <nav className="absolute top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,11 +45,16 @@ export default function Navbar() {
             <a href="#" className="text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
               Roads
             </a>
-            <a href="#" className="text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-              My Routes
-            </a>
-            <Button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white ml-2">
-              Sign In
+            {authenticated && (
+              <a href="#" className="text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                My Routes
+              </a>
+            )}
+            <Button 
+              onClick={handleAuthClick}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white ml-2"
+            >
+              {authenticated ? 'Sign Out' : 'Sign In'}
             </Button>
           </div>
 

@@ -102,6 +102,37 @@ app.post("/roads", { preHandler: authMiddleware }, async (request: any, reply) =
   const { name, description, geometry, tags } = request.body;
   const user = request.user;
   
+  // Validate route length - Google Maps supports up to 8 waypoints, Apple Maps up to 3
+  // We'll allow routes up to 1000km to ensure they can be navigated
+  const MAX_ROUTE_LENGTH_KM = 1000;
+  
+  // Calculate approximate length from geometry coordinates
+  let estimatedLength = 0;
+  if (geometry && geometry.coordinates && geometry.coordinates.length > 1) {
+    for (let i = 1; i < geometry.coordinates.length; i++) {
+      const [lng1, lat1] = geometry.coordinates[i - 1];
+      const [lng2, lat2] = geometry.coordinates[i];
+      // Haversine formula for distance calculation
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      estimatedLength += R * c;
+    }
+  }
+  
+  if (estimatedLength > MAX_ROUTE_LENGTH_KM) {
+    return reply.code(400).send({ 
+      error: "Route too long for navigation",
+      message: `Route length (${estimatedLength.toFixed(1)} km) exceeds maximum of ${MAX_ROUTE_LENGTH_KM} km. Please split this route into multiple stages.`,
+      estimatedLength,
+      maxLength: MAX_ROUTE_LENGTH_KM
+    });
+  }
+  
   // Simplified insert without PostGIS for demo mode
   const result = await query(
     `
@@ -110,10 +141,10 @@ app.post("/roads", { preHandler: authMiddleware }, async (request: any, reply) =
     )
     VALUES (?, ?, ?, ?, ?, ?)
     `,
-    [name, description, JSON.stringify(geometry), JSON.stringify(tags), 0, user.id]
+    [name, description, JSON.stringify(geometry), JSON.stringify(tags), estimatedLength, user.id]
   );
   
-  return { id: (result as any).lastID, name, created_at: new Date().toISOString() };
+  return { id: (result as any).lastID, name, length_km: estimatedLength, created_at: new Date().toISOString() };
 });
 
 // POST GPX import (requires auth) - simplified for demo mode
@@ -139,6 +170,34 @@ app.post("/roads/import-gpx", { preHandler: authMiddleware }, async (request: an
       return reply.code(400).send({ error: "GPX must contain track data" });
     }
     
+    // Validate route length
+    const MAX_ROUTE_LENGTH_KM = 1000;
+    let estimatedLength = 0;
+    if (line.coordinates && line.coordinates.length > 1) {
+      for (let i = 1; i < line.coordinates.length; i++) {
+        const [lng1, lat1] = line.coordinates[i - 1];
+        const [lng2, lat2] = line.coordinates[i];
+        // Haversine formula for distance calculation
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        estimatedLength += R * c;
+      }
+    }
+    
+    if (estimatedLength > MAX_ROUTE_LENGTH_KM) {
+      return reply.code(400).send({ 
+        error: "Route too long for navigation",
+        message: `Route length (${estimatedLength.toFixed(1)} km) exceeds maximum of ${MAX_ROUTE_LENGTH_KM} km. Please split this route into multiple stages.`,
+        estimatedLength,
+        maxLength: MAX_ROUTE_LENGTH_KM
+      });
+    }
+    
     // Simplified insert without PostGIS length calculation
     const result = await query(
       `
@@ -147,10 +206,10 @@ app.post("/roads/import-gpx", { preHandler: authMiddleware }, async (request: an
       )
       VALUES (?, ?, ?, ?, ?)
       `,
-      [name, JSON.stringify(line), JSON.stringify(tags), 0, user.id]
+      [name, JSON.stringify(line), JSON.stringify(tags), estimatedLength, user.id]
     );
     
-    return { id: (result as any).lastID, name, created_at: new Date().toISOString() };
+    return { id: (result as any).lastID, name, length_km: estimatedLength, created_at: new Date().toISOString() };
   } catch (error) {
     console.error("GPX import error:", error);
     return reply.code(500).send({ error: "Failed to process GPX file" });
