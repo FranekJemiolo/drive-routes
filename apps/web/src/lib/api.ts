@@ -1,4 +1,5 @@
 import { Road, Review, User, UserRoute } from "../types";
+import { showToast } from "../components/ui/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -40,12 +41,15 @@ export async function createRoad(road: Partial<Road>): Promise<Road | null> {
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || errorData.error || "Failed to create road");
+      const errorMessage = errorData.message || errorData.error || "Failed to create road";
+      showToast("error", errorMessage);
+      throw new Error(errorMessage);
     }
     return await res.json();
   } catch (e) {
     console.error("Create road error:", e);
-    throw e; // Re-throw to allow caller to handle error
+    showToast("error", "Failed to create road");
+    throw e;
   }
 }
 
@@ -86,11 +90,15 @@ export async function importGPX(gpxText: string, name: string): Promise<Road[] |
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || errorData.error || "Failed to import GPX");
+      const errorMessage = errorData.message || errorData.error || "Failed to import GPX";
+      showToast("error", errorMessage);
+      throw new Error(errorMessage);
     }
+    showToast("success", "GPX imported successfully");
     return await res.json();
   } catch (e) {
     console.error("GPX import error:", e);
-    throw e; // Re-throw to allow caller to handle error
+    showToast("error", "Failed to import GPX");
+    throw e;
   }
 }

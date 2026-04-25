@@ -48,10 +48,11 @@ export default function RoadPanel({ road, onClose }: Props) {
     const end = coords[coords.length - 1];
     
     // Apple Maps supports up to 3 waypoints (excluding origin and destination)
+    // Format: http://maps.apple.com/?saddr=start&daddr=waypoint1+to:waypoint2+to:destination
     const maxWaypoints = 3;
     const totalPoints = coords.length;
     
-    let url = `http://maps.apple.com/?saddr=${start[1]},${start[0]}&daddr=${end[1]},${end[0]}`;
+    let url = `http://maps.apple.com/?saddr=${start[1]},${start[0]}`;
     
     // Add waypoints if route has enough points
     if (totalPoints > 2) {
@@ -65,8 +66,15 @@ export default function RoadPanel({ road, onClose }: Props) {
       }
       
       if (waypoints.length > 0) {
-        url += `&dirflg=d&${waypoints.map((wp, idx) => `dirflg=d&${idx === 0 ? 'daddr' : 'to'}=${wp}`).join('&')}`;
+        // Add destination as final waypoint
+        waypoints.push(`${end[1]},${end[0]}`);
+        // Format: daddr=waypoint1+to:waypoint2+to:destination
+        url += `&daddr=${waypoints.join('+to:')}`;
+      } else {
+        url += `&daddr=${end[1]},${end[0]}`;
       }
+    } else {
+      url += `&daddr=${end[1]},${end[0]}`;
     }
     
     window.open(url, "_blank");
