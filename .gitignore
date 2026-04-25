@@ -52,4 +52,4 @@ tmp/
 *.db-wal
 
 # Demo database (committed for GitHub Pages)
-# !apps/api/demo.db
+!apps/api/demo.db
