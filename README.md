@@ -7,10 +7,12 @@ A social platform for discovering, rating, and sharing the best driving roads fo
 - **Interactive Map**: Leaflet-based map with OpenStreetMap tiles
 - **Road Discovery**: Browse and filter roads by type, rating, and location
 - **GPX Import**: Upload your own driving routes and automatically segment them
-- **Rating System**: Multi-dimensional ratings (enjoyment, scenery, surface, traffic)
+- **Rating System**: Single score rating (1-10) for roads
+- **Reviews**: Submit and read reviews for roads with sorting options
 - **Navigation Integration**: One-click export to Google Maps and Apple Maps
 - **Social Features**: Save roads, create collections, share with groups
 - **Responsive Design**: Works on desktop and mobile browsers
+- **Demo Mode**: Browser-only mode with sample data for testing without backend
 
 ## Architecture
 
@@ -74,6 +76,24 @@ npm run dev:web
 
 Visit http://localhost:3000 to see the application.
 
+## Demo Mode
+
+The application can run in demo mode (browser-only) without a backend API. This is useful for testing the UI and features without setting up a database.
+
+### Demo Mode Authentication
+
+In demo mode (localhost or GitHub Pages), you can sign in with any email and password. The system creates a local session stored in localStorage.
+
+### Test Account (Backend Mode)
+
+When running with the backend API, you can use this test account:
+
+- **Email**: orange@test.me
+- **Password**: juice
+- **Username**: test_user
+
+This account is included in the database seed data (`scripts/seed.sql`).
+
 ## Project Structure
 
 ```
@@ -91,8 +111,10 @@ drive-routes/
 - `GET /roads/:id` - Get road details
 - `POST /roads` - Create new road (requires auth)
 - `POST /roads/import-gpx` - Import GPX file (requires auth)
-- `GET /reviews` - List reviews
-- `POST /reviews` - Create review (requires auth)
+- `GET /roads/:id/reviews` - List reviews for a road (supports sorting)
+- `POST /roads/:id/reviews` - Create review for a road (requires auth)
+- `PUT /reviews/:id` - Update review (requires auth, owner only)
+- `DELETE /reviews/:id` - Delete review (requires auth, owner only)
 
 ## Deployment
 
@@ -112,7 +134,7 @@ Pull requests and feature branches get preview deployments automatically.
 Key tables:
 - `roads` - Road data with PostGIS geometry
 - `users` - User profiles and preferences
-- `reviews` - Multi-dimensional road ratings
+- `reviews` - Single score road ratings (1-10)
 - `user_routes` - Custom route collections
 - `events` - Analytics and onboarding tracking
 
