@@ -33,20 +33,23 @@ async function authMiddleware(req: any, reply: any) {
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return reply.code(401).send({ error: 'No token provided' });
+    reply.code(401).send({ error: 'No token provided' });
+    return;
   }
   
   const token = authHeader.substring(7);
   const decoded = verifyToken(token);
   
   if (!decoded) {
-    return reply.code(401).send({ error: 'Invalid or expired token' });
+    reply.code(401).send({ error: 'Invalid or expired token' });
+    return;
   }
   
   // Verify user exists in database
   const users = await query('SELECT id, email, username FROM users WHERE id = ?', [decoded.userId]);
   if (users.length === 0) {
-    return reply.code(401).send({ error: 'User not found' });
+    reply.code(401).send({ error: 'User not found' });
+    return;
   }
   
   req.user = users[0];
