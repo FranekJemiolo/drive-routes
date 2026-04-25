@@ -319,7 +319,10 @@ export function updateRoadRating(roadId: string): void {
 
 // Check if running in browser mode
 export function isBrowserMode(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') {
+    console.log('[Browser Storage] SSR - returning false');
+    return false;
+  }
   const hostname = window.location.hostname;
   console.log('[Browser Storage] Hostname:', hostname);
   // Always use browser mode for GitHub Pages or when no API URL is configured
