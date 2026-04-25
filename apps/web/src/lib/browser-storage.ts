@@ -310,7 +310,9 @@ export function isBrowserMode(): boolean {
   if (typeof window === 'undefined') return false;
   const hostname = window.location.hostname;
   console.log('[Browser Storage] Hostname:', hostname);
-  const isBrowser = hostname.includes('github.io') || hostname.includes('localhost');
-  console.log('[Browser Storage] isBrowserMode:', isBrowser);
+  // Always use browser mode for GitHub Pages or when no API URL is configured
+  const noApiUrl = !process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL === 'http://localhost:3001';
+  const isBrowser = hostname.includes('github.io') || hostname.includes('localhost') || noApiUrl;
+  console.log('[Browser Storage] isBrowserMode:', isBrowser, '(noApiUrl:', noApiUrl, ')');
   return isBrowser;
 }
