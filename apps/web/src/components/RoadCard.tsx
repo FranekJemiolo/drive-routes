@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/
 import { Badge } from "./ui/badge";
 import { useEffect, useRef } from "react";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 type Props = {
   road: Road;
@@ -51,6 +52,11 @@ export default function RoadCard({ road }: Props) {
       // Fit map to road bounds
       map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
     }
+
+    // Invalidate map size to ensure proper rendering
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
 
     return () => {
       if (mapInstanceRef.current) {
