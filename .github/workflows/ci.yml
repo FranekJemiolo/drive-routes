@@ -34,16 +34,6 @@ jobs:
         run: cd apps/web && npm test
       
       - name: Build web app
-        run: cd apps/web && npm run build
-        env:
-          NEXT_PUBLIC_API_URL: 'https://franekjemiolo.github.io/drive-routes/api'
-      
-      - name: Copy demo database
-        run: cp apps/api/demo.db apps/web/out/demo.db
-      
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./apps/web/out
+        run: |
+          cd apps/web
+          NEXT_PUBLIC_BASE_PATH=/drive-routes npm run build
