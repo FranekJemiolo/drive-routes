@@ -6,10 +6,12 @@ import { isAuthenticated, getUser, login, register, logout, setToken, setUser } 
 import { useState, useEffect } from "react";
 import { showToast } from "./ui/toast";
 import { createPortal } from "react-dom";
+import { RouteEditor } from "./RouteEditor";
 
 export default function Navbar() {
   const [authenticated, setAuthenticated] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [showRouteEditor, setShowRouteEditor] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -91,6 +93,15 @@ export default function Navbar() {
                 <Link href="/my-routes" className="text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                   My Routes
                 </Link>
+              )}
+              {authenticated && (
+                <Button
+                  onClick={() => setShowRouteEditor(true)}
+                  variant="outline"
+                  className="border-slate-700 hover:bg-slate-800 text-white"
+                >
+                  + Add Route
+                </Button>
               )}
               <Button 
                 onClick={handleAuthClick}
@@ -192,6 +203,19 @@ export default function Navbar() {
             </p>
           </div>
         </div>,
+        document.body
+      )}
+
+      {/* Route Editor Modal - Portal to body */}
+      {mounted && showRouteEditor && createPortal(
+        <RouteEditor
+          isOpen={showRouteEditor}
+          onClose={() => setShowRouteEditor(false)}
+          onRouteCreated={() => {
+            // Refresh the page or update state to show new route
+            window.location.reload();
+          }}
+        />,
         document.body
       )}
     </>
