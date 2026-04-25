@@ -3,6 +3,8 @@
 import { Road } from "../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { useEffect, useRef } from "react";
+import L from "leaflet";
 
 type Props = {
   road: Road;
@@ -11,6 +13,52 @@ type Props = {
 export default function RoadCard({ road }: Props) {
   const rating = Number(road.rating_avg);
   const length = Number(road.length_km);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Initialize map
+    const map = L.map(mapRef.current, {
+      center: [0, 0],
+      zoom: 2,
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+    });
+
+    mapInstanceRef.current = map;
+
+    // Add OpenStreetMap tiles
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap",
+    }).addTo(map);
+
+    // Draw road geometry
+    if (road.geometry && road.geometry.coordinates) {
+      const coords: [number, number][] = road.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]]);
+      
+      const polyline = L.polyline(coords, {
+        color: "#22c55e",
+        weight: 3,
+        opacity: 0.8,
+      }).addTo(map);
+
+      // Fit map to road bounds
+      map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [road.geometry]);
 
   return (
     <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer">
@@ -21,10 +69,8 @@ export default function RoadCard({ road }: Props) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Miniature map placeholder */}
-        <div className="w-full h-32 bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 text-sm">
-          Miniature map
-        </div>
+        {/* Miniature map */}
+        <div ref={mapRef} className="w-full h-32 bg-slate-700 rounded-lg" />
 
         {/* Rating and stats */}
         <div className="flex items-center justify-between">
