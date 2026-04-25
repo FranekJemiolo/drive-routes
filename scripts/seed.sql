@@ -10,9 +10,10 @@ INSERT INTO roads (name, description, geometry, tags, country, region, length_km
 ON CONFLICT DO NOTHING;
 
 -- Insert sample users first
-INSERT INTO users (id, username, email, reputation_score, onboarding_state, onboarding_step, preferences, stats) VALUES
-('550e8400-e29b-41d4-a716-446655440001', 'road_enthusiast', 'enthusiast@example.com', 7.5, 'completed', 3, '{"prefers_twisty": true, "prefers_scenic": true, "avoids_highways": false, "tags": ["mountain", "coastal"]}', '{"roads_rated": 15, "distance_driven_logged": 2500}'),
-('550e8400-e29b-41d4-a716-446655440002', 'motorcycle_rider', 'rider@example.com', 8.2, 'completed', 3, '{"prefers_twisty": true, "prefers_scenic": false, "avoids_highways": true, "tags": ["twisty", "technical"]}', '{"roads_rated": 23, "distance_driven_logged": 4200}')
+INSERT INTO users (id, username, email, password_hash, reputation_score, onboarding_state, onboarding_step, preferences, stats) VALUES
+('550e8400-e29b-41d4-a716-446655440001', 'road_enthusiast', 'enthusiast@example.com', '$2b$10$placeholder', 7.5, 'completed', 3, '{"prefers_twisty": true, "prefers_scenic": true, "avoids_highways": false, "tags": ["mountain", "coastal"]}', '{"roads_rated": 15, "distance_driven_logged": 2500}'),
+('550e8400-e29b-41d4-a716-446655440002', 'motorcycle_rider', 'rider@example.com', '$2b$10$placeholder', 8.2, 'completed', 3, '{"prefers_twisty": true, "prefers_scenic": false, "avoids_highways": true, "tags": ["twisty", "technical"]}', '{"roads_rated": 23, "distance_driven_logged": 4200}'),
+('550e8400-e29b-41d4-a716-446655440003', 'test_user', 'orange@test.me', '$2b$10$eG2VDe2S7jc73jUya07Tv.F7J10SsgahIZnauM8u.5/o8wHNc3B32', 5.0, 'completed', 3, '{"prefers_twisty": false, "prefers_scenic": true, "avoids_highways": false, "tags": []}', '{"roads_rated": 0, "distance_driven_logged": 0}')
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert sample reviews with simplified single score
