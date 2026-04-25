@@ -98,9 +98,9 @@ export default function LeafletMap({ onSelectRoad }: Props) {
       
       const coordinates = road.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]);
       const polyline = L.polyline(coordinates, {
-        color: getRoadColor(road.rating_avg),
+        color: "#ef4444",
         weight: 4,
-        opacity: 0.85,
+        opacity: 0.9,
       }).addTo(mapRef.current);
 
       // Add click handler

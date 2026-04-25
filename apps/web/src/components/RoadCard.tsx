@@ -54,7 +54,7 @@ export default function RoadCard({ road }: Props) {
       const coords: [number, number][] = road.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]]);
       
       const polyline = L.polyline(coords, {
-        color: "#22c55e",
+        color: "#ef4444",
         weight: 3,
         opacity: 0.8,
       }).addTo(map);
