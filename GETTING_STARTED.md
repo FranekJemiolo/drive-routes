@@ -1,36 +1,77 @@
 # Getting Started with DriveRoutes
 
-## Quick Start (Recommended)
+## Quick Start (Demo Mode - Recommended for Testing)
 
 ```bash
-# 1. One-time setup
-npm run quick-start
+# 1. Clone the repository
+git clone https://github.com/FranekJemiolo/drive-routes.git
+cd drive-routes
 
-# 2. Install dependencies (run in each folder)
-npm install
-cd apps/web && npm install
-cd ../api && npm install
+# 2. Install dependencies
+npm run install:all
 
-# 3. Start development servers
+# 3. Start the frontend (demo mode)
+npm run dev:web
+```
+
+That's it! The application will be available at http://localhost:3000 in demo mode.
+
+**Demo Mode Features:**
+- All data stored in browser localStorage
+- Pre-populated with 8 sample roads (0 reviews each)
+- Local authentication (any email/password works)
+- No database required
+- Perfect for testing UI and user experience
+
+## Quick Start (Production Mode - Full Backend)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/FranekJemiolo/drive-routes.git
+cd drive-routes
+
+# 2. Install dependencies
+npm run install:all
+
+# 3. Set up environment variables
+# apps/api/.env
+DATABASE_URL=postgresql://user:password@localhost:5432/drive_routes
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+DEMO_MODE=false
+
+# apps/web/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# 4. Set up database
+psql $DATABASE_URL -f scripts/schema.sql
+npm run seed
+
+# 5. Start development servers
 npm run dev
 ```
 
-That's it! The application will be available at:
+The application will be available at:
 - Frontend: http://localhost:3000
 - Backend: http://localhost:3001
 
-## What's Included
+## Sample Data
 
-The setup automatically:
-- Starts PostgreSQL with PostGIS using Docker
-- Creates the database schema
-- Loads sample data (3 roads, 2 users, reviews)
-- Sets up environment files
-- Configures everything for local development
+**Demo Mode:**
+- 8 famous driving routes pre-loaded (Pacific Coast Highway, Tail of the Dragon, Stelvio Pass, etc.)
+- All roads start with 0 reviews and 0 rating
+- Ratings are calculated from actual user reviews only
+
+**Production Mode:**
+- 3 sample roads (Alpine Pass Loop, Coastal Highway 1, Black Forest Twist)
+- All roads start with 0 reviews and 0 rating
+- Ratings are calculated from actual user reviews only
 
 ## Manual Testing
 
-### Test the Backend API
+### Test the Backend API (Production Mode Only)
 ```bash
 # Test if API is running
 curl http://localhost:3001
@@ -41,36 +82,38 @@ curl http://localhost:3001/roads
 # Get road by ID (use one from the previous command)
 curl http://localhost:3001/roads/<road-id>
 
-# Get reviews
-curl http://localhost:3001/reviews
+# Get reviews for a road
+curl http://localhost:3001/roads/<road-id>/reviews
 ```
 
 ### Test the Frontend
 1. Open http://localhost:3000
 2. You should see a map with roads
 3. Click on any road to see details
-4. Try the navigation buttons
-
-## Sample Data
-
-The setup includes sample roads:
-- **Alpine Pass Loop** (Austria) - Mountain twisty road
-- **Coastal Highway 1** (California) - Scenic coastal drive  
-- **Black Forest Twist** (Germany) - Forest technical road
-
-Each has reviews and ratings already loaded.
+4. Sign in with any email/password (demo mode) or your Supabase account (production mode)
+5. Add a review to see the rating update
+6. Try the navigation buttons
 
 ## Environment Variables
 
-The setup creates these files:
-- `.env` - Backend configuration
-- `apps/web/.env.local` - Frontend configuration
-
-You'll need to update the Supabase values if you want authentication:
+**Demo Mode (apps/web/.env.local):**
 ```bash
-# In both files, replace:
+NEXT_PUBLIC_API_URL=
+```
+
+**Production Mode (apps/api/.env):**
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/drive_routes
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
+DEMO_MODE=false
+```
+
+**Production Mode (apps/web/.env.local):**
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ## Development Workflow
@@ -84,26 +127,24 @@ SUPABASE_ANON_KEY=your-anon-key
 - Frontend: Auto-reloads on save
 - Backend: Auto-restarts on save
 
-### Database Changes
+### Database Changes (Production Mode)
 ```bash
 # Reset database (loses all data)
-docker-compose down -v
-docker-compose up -d postgres
-
-# Or just re-run setup
-npm run quick-start
+psql $DATABASE_URL -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+psql $DATABASE_URL -f scripts/schema.sql
+npm run seed
 ```
 
 ## Common Commands
 
 | Command | What it does |
 |---------|--------------|
-| `npm run quick-start` | Database + env setup |
-| `npm run dev` | Start both servers |
+| `npm run install:all` | Install all dependencies |
+| `npm run dev` | Start both servers (production mode) |
 | `npm run dev:api` | Backend only |
-| `npm run dev:web` | Frontend only |
-| `npm run docker:down` | Stop database |
-| `npm run docker:logs` | View database logs |
+| `npm run dev:web` | Frontend only (demo mode) |
+| `npm test` | Run tests |
+| `npm run seed` | Seed database with sample data |
 
 ## Troubleshooting
 
@@ -119,14 +160,11 @@ kill -9 <PID>
 
 ### Database connection issues
 ```bash
-# Restart database
-docker-compose restart postgres
+# Check if PostgreSQL is running
+pg_isready
 
-# Check logs
-npm run docker:logs
-
-# Reset everything
-docker-compose down -v && npm run quick-start
+# Restart PostgreSQL
+brew services restart postgresql
 ```
 
 ### Frontend build errors
@@ -149,15 +187,25 @@ npm install
 
 Once everything is running:
 
-1. **Set up Supabase** for authentication (optional for testing)
-2. **Try importing a GPX file** through the UI
+1. **Try the demo mode** first to understand the UI
+2. **Set up Supabase** for production authentication
 3. **Create your own roads** using the map tools
-4. **Add reviews** to the sample roads
-5. **Explore the API** with curl or Postman
+4. **Add reviews** to see the rating system in action
+5. **Import a GPX file** through the UI (production mode)
+6. **Explore the API** with curl or Postman
 
 ## Architecture Overview
 
 ```
+Demo Mode:
+Frontend (Next.js)     Browser Storage
+      :3000                  localStorage
+         |                       |
+         |                       |
+    React/Leaflet         Local data
+    Maps UI              + Local auth
+
+Production Mode:
 Frontend (Next.js)     Backend (Fastify)     Database (PostgreSQL+PostGIS)
       :3000                  :3001                    :5432
          |                       |                        |
@@ -165,5 +213,10 @@ Frontend (Next.js)     Backend (Fastify)     Database (PostgreSQL+PostGIS)
     React/Leaflet         REST API              Spatial queries
     Maps UI              + Auth                + GeoJSON storage
 ```
+
+## Live Demo
+
+The application is deployed to GitHub Pages in demo mode:
+https://franekjemiolo.github.io/drive-routes/
 
 Happy coding!

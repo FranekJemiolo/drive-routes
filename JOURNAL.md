@@ -15,12 +15,12 @@ DriveRoutes is a social platform for discovering, rating, and sharing the best d
 ### Backend
 - **Framework**: Fastify
 - **Language**: TypeScript
-- **Database**: PostgreSQL with PostGIS extension
-- **Authentication**: Supabase (production), mock auth (local dev)
+- **Database**: PostgreSQL with PostGIS extension (production) or SQLite (demo)
+- **Authentication**: Supabase (production), local session (demo)
 
 ### Infrastructure
 - **CI/CD**: GitHub Actions
-- **Deployment**: Fly.io (backend), GitHub Pages (frontend) - planned
+- **Deployment**: GitHub Pages (static export with demo mode)
 
 ## Key Decisions
 
@@ -67,13 +67,96 @@ DriveRoutes is a social platform for discovering, rating, and sharing the best d
 - Updated CI/CD to deploy to GitHub Pages with demo database
 **Trade-offs**: Demo mode lacks PostGIS spatial queries and GPX length calculations
 
+### 2026-04-26: Reviews Feature Implementation
+**Decision**: Implemented comprehensive reviews system with single score rating (1-10)
+**Reason**: To allow users to rate and review roads with transparent rating calculation
+**Outcome**:
+- Simplified reviews table to use single score instead of multi-dimensional ratings
+- Implemented database trigger for automatic rating updates in PostgreSQL
+- Implemented manual rating calculation in SQLite/browser storage
+- Created RoadDetailModal component for displaying road details and reviews
+- Added review submission form with score (1-10) and text
+- Implemented review sorting (score ascending/descending, recency ascending/descending)
+- Added Jest testing framework with comprehensive test coverage for browser storage
+- Integrated tests into CI/CD pipeline
+- Removed all pre-populated reviews from seed data
+- All roads now start with 0 reviews and 0 rating
+- Ratings are calculated exclusively from actual user reviews
+
+### 2026-04-26: Route Length Calculation
+**Decision**: Implemented Haversine formula for accurate route length calculation
+**Reason**: Route length was not being calculated when drawing routes on the map
+**Outcome**:
+- Added calculateDistance function using Haversine formula
+- Added calculateLength function to sum distances between all coordinates
+- Integrated length calculation into RouteEditor handleSubmit
+- Length is now calculated and stored when creating new roads
+
+### 2026-04-26: Mobile Menu Fix
+**Decision**: Added mobile menu state and dropdown navigation
+**Reason**: Mobile menu button was not functional
+**Outcome**:
+- Added mobileMenuOpen state to track menu visibility
+- Created mobile menu dropdown with all navigation links
+- Added onClick handlers to close menu after navigation
+- Mobile menu now works correctly on small screens
+
+### 2026-04-26: Sign In Modal Z-Index Fix
+**Decision**: Increased z-index of sign in modal to appear above map
+**Reason**: Sign in modal was being overshadowed by Leaflet map on mobile
+**Outcome**:
+- Increased modal backdrop z-index from z-[100] to z-[9999]
+- Increased modal content z-index to z-[10000]
+- Sign in modal now appears above map on all devices
+
+### 2026-04-26: CI/CD Workflow Fixes
+**Decision**: Fixed CI workflow to use correct install command and BASE_PATH
+**Reason**: CI workflow was failing with npm ci and missing static assets
+**Outcome**:
+- Changed npm ci to npm run install:all for monorepo structure
+- Added NEXT_PUBLIC_BASE_PATH=/drive-routes during build
+- Added typecheck and test steps to CI workflow
+- Removed deployment steps from CI workflow (handled by deploy.yml)
+- Both CI and Production Deploy workflows now pass successfully
+
+### 2026-04-26: Rating System Transparency
+**Decision**: Removed all pre-populated ratings and reviews from seed data
+**Reason**: Ratings should be calculated exclusively from actual user reviews
+**Outcome**:
+- Updated SQLite seed script to set all roads to rating_avg: 0, rating_count: 0
+- Removed sample reviews from SQLite seed
+- Updated PostgreSQL seed script to set all roads to rating_avg: 0, rating_count: 0
+- Removed sample reviews from PostgreSQL seed
+- Regenerated demo.db with zeroed ratings
+- Database trigger automatically updates ratings in production mode
+- Browser storage manually calculates ratings in demo mode
+
 ## Known Issues
 - xmldom package lacks TypeScript types (non-blocking)
 - @apply rule in globals.css shows unknown at-rule warning (cosmetic)
+- apps/api/src/index-local.ts has TypeScript errors (non-blocking, local dev only)
+
+## Completed Features
+- ✅ Interactive map with Leaflet
+- ✅ Road discovery and filtering
+- ✅ Route creation with map drawing
+- ✅ Automatic length calculation using Haversine formula
+- ✅ Single score rating system (1-10)
+- ✅ Review submission and display
+- ✅ Review sorting (score, recency)
+- ✅ Navigation integration (Google Maps, Apple Maps)
+- ✅ Responsive design with mobile menu
+- ✅ Demo mode (browser storage)
+- ✅ Production mode (PostgreSQL + API)
+- ✅ Jest testing framework
+- ✅ CI/CD pipeline with automated testing
+- ✅ GitHub Pages deployment
+- ✅ Comprehensive documentation
 
 ## Future Improvements
 - Add @types/xmldom for TypeScript support
-- Implement GitHub Actions CI/CD pipeline
-- Set up production deployments
-- Add automated testing
-- Implement proper authentication flow
+- Add tests for production mode (API endpoints)
+- Implement user route collections
+- Add GPX import functionality
+- Implement proper Supabase authentication flow
+- Add more sample roads to seed data
