@@ -19,6 +19,7 @@ export default function Navbar() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setAuthenticated(isAuthenticated());
@@ -113,7 +114,10 @@ export default function Navbar() {
 
             {/* Mobile menu button */}
             <div className="md:hidden">
-              <button className="text-slate-300 hover:text-white p-2 hover:bg-slate-800 rounded-lg transition-colors">
+              <button 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-slate-300 hover:text-white p-2 hover:bg-slate-800 rounded-lg transition-colors"
+              >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -121,6 +125,58 @@ export default function Navbar() {
             </div>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
+            <div className="px-4 pt-2 pb-4 space-y-1">
+              <Link 
+                href="/" 
+                className="block text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Map
+              </Link>
+              <Link 
+                href="/roads" 
+                className="block text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Roads
+              </Link>
+              {authenticated && (
+                <Link 
+                  href="/my-routes" 
+                  className="block text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Routes
+                </Link>
+              )}
+              {authenticated && (
+                <Button
+                  onClick={() => {
+                    setShowRouteEditor(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  variant="outline"
+                  className="w-full border-slate-700 hover:bg-slate-800 text-white"
+                >
+                  + Add Route
+                </Button>
+              )}
+              <Button 
+                onClick={() => {
+                  handleAuthClick();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+              >
+                {authenticated ? 'Sign Out' : 'Sign In'}
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Sign In Modal - Portal to body */}
