@@ -71,8 +71,8 @@ async function seedDemoDb() {
         coordinates: [[-122.4194, 37.7749], [-122.4783, 37.8199], [-122.5110, 37.7749]]
       }),
       length_km: 120.7,
-      rating_avg: 9.2,
-      rating_count: 156,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["scenic", "coastal", "curves"]),
       countries: JSON.stringify(["USA"]),
       created_by: 1
@@ -85,8 +85,8 @@ async function seedDemoDb() {
         coordinates: [[-83.9217, 35.7600], [-83.9150, 35.7650], [-83.9080, 35.7700]]
       }),
       length_km: 17.7,
-      rating_avg: 9.8,
-      rating_count: 342,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["motorcycle", "curves", "challenging"]),
       countries: JSON.stringify(["USA"]),
       created_by: 2
@@ -99,8 +99,8 @@ async function seedDemoDb() {
         coordinates: [[-81.6789, 35.2271], [-81.5900, 35.2800], [-81.5000, 35.3300]]
       }),
       length_km: 755.0,
-      rating_avg: 9.5,
-      rating_count: 289,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["scenic", "mountains", "long-distance"]),
       countries: JSON.stringify(["USA"]),
       created_by: 1
@@ -113,8 +113,8 @@ async function seedDemoDb() {
         coordinates: [[10.4244, 46.5215], [10.4350, 46.5300], [10.4450, 46.5400]]
       }),
       length_km: 24.0,
-      rating_avg: 9.9,
-      rating_count: 445,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["mountain", "hairpin", "europe"]),
       countries: JSON.stringify(["Italy"]),
       created_by: 3
@@ -127,8 +127,8 @@ async function seedDemoDb() {
         coordinates: [[-87.6298, 41.8781], [-96.7970, 32.7767], [-118.2437, 34.0522]]
       }),
       length_km: 3940.0,
-      rating_avg: 8.5,
-      rating_count: 567,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["historic", "long-distance", "iconic"]),
       countries: JSON.stringify(["USA"]),
       created_by: 1
@@ -141,8 +141,8 @@ async function seedDemoDb() {
         coordinates: [[6.9393, 50.3300], [6.9500, 50.3400], [6.9600, 50.3500]]
       }),
       length_km: 20.8,
-      rating_avg: 9.7,
-      rating_count: 623,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["race-track", "germany", "legendary"]),
       countries: JSON.stringify(["Germany"]),
       created_by: 2
@@ -155,8 +155,8 @@ async function seedDemoDb() {
         coordinates: [[144.2867, -38.2332], [144.3500, -38.2000], [144.4000, -38.1800]]
       }),
       length_km: 243.0,
-      rating_avg: 9.3,
-      rating_count: 234,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["coastal", "australia", "scenic"]),
       countries: JSON.stringify(["Australia"]),
       created_by: 3
@@ -169,8 +169,8 @@ async function seedDemoDb() {
         coordinates: [[14.6029, 40.6330], [14.6200, 40.6400], [14.6400, 40.6500]]
       }),
       length_km: 50.0,
-      rating_avg: 9.4,
-      rating_count: 312,
+      rating_avg: 0,
+      rating_count: 0,
       tags: JSON.stringify(["coastal", "italy", "scenic"]),
       countries: JSON.stringify(["Italy"]),
       created_by: 1
@@ -187,27 +187,8 @@ async function seedDemoDb() {
     db.run(sql);
   });
 
-  // Insert sample reviews
-  const insertReview = db.prepare(`
-    INSERT OR IGNORE INTO reviews (road_id, user_id, rating, comment)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  const sampleReviews = [
-    { road_id: 1, user_id: 1, rating: 9, comment: "Absolutely breathtaking views!" },
-    { road_id: 1, user_id: 2, rating: 10, comment: "Perfect for a Sunday drive" },
-    { road_id: 2, user_id: 3, rating: 10, comment: "Best motorcycle road ever" },
-    { road_id: 2, user_id: 1, rating: 9, comment: "Challenging but rewarding" },
-    { road_id: 3, user_id: 2, rating: 9, comment: "Beautiful mountain scenery" },
-    { road_id: 4, user_id: 3, rating: 10, comment: "Unforgettable experience" },
-    { road_id: 5, user_id: 1, rating: 8, comment: "Classic American road trip" },
-    { road_id: 6, user_id: 2, rating: 10, comment: "Every car enthusiast's dream" }
-  ];
-
-  sampleReviews.forEach(review => {
-    insertReview.run(review.road_id, review.user_id, review.rating, review.comment);
-  });
-
+  // No sample reviews - ratings will be calculated from actual user reviews
+  
   // Export database to binary file
   const data = db.export();
   const buffer = Buffer.from(data);
@@ -215,8 +196,8 @@ async function seedDemoDb() {
   fs.writeFileSync(dbPath, buffer);
 
   console.log('✓ Demo database seeded successfully');
-  console.log(`✓ Created ${sampleRoads.length} sample roads`);
-  console.log(`✓ Created ${sampleReviews.length} sample reviews`);
+  console.log(`✓ Created ${sampleRoads.length} sample roads with 0 reviews`);
+  console.log(`✓ Ratings will be calculated from actual user reviews`);
   console.log(`✓ Database saved to ${dbPath}`);
 
   db.close();

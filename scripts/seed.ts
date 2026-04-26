@@ -50,7 +50,7 @@ async function seed() {
   console.log("Seeding database...");
 
   try {
-    // Insert sample roads
+    // Insert sample roads with 0 ratings
     for (const road of sampleRoads) {
       await pool.query(
         `
@@ -58,7 +58,7 @@ async function seed() {
         VALUES (
           $1, $2, ST_GeomFromGeoJSON($3), $4, $5, $6,
           ST_Length(ST_GeomFromGeoJSON($3)::geography, true) / 1000,
-          7.5, 3, 12
+          0, 0, 0
         )
         ON CONFLICT DO NOTHING
         `,
@@ -73,27 +73,12 @@ async function seed() {
       );
     }
 
-    // Insert sample reviews
-    const roads = await pool.query("SELECT id FROM roads LIMIT 3");
-    
-    for (let i = 0; i < Math.min(roads.rows.length, 3); i++) {
-      const roadId = roads.rows[i].id;
-      
-      await pool.query(
-        `
-        INSERT INTO reviews (user_id, road_id, ratings, text)
-        VALUES (
-          gen_random_uuid(), $1,
-          '{"enjoyment": 8, "scenery": 9, "surface": 7, "traffic": 3}',
-          'Amazing road with beautiful views and great corners!'
-        )
-        ON CONFLICT DO NOTHING
-        `,
-        [roadId]
-      );
-    }
+    // No sample reviews - ratings will be calculated from actual user reviews
+    // The database trigger will automatically update rating_avg and rating_count when reviews are added
 
     console.log("Database seeded successfully!");
+    console.log("Sample roads created with 0 reviews and 0 ratings");
+    console.log("Ratings will be calculated from actual user reviews via database trigger");
   } catch (error) {
     console.error("Seeding failed:", error);
   } finally {
