@@ -181,8 +181,8 @@ export default function Navbar() {
 
       {/* Sign In Modal - Portal to body */}
       {mounted && showSignInModal && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 w-full max-w-md shadow-2xl relative z-[10000]">
             <h2 className="text-xl font-bold text-white mb-4">{isRegisterMode ? "Register" : "Sign In"}</h2>
             {error && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
