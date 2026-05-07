@@ -24,6 +24,72 @@ A social platform for discovering, rating, and sharing the best driving roads fo
 - **Deployment**: GitHub Pages (static export)
 - **CI/CD**: GitHub Actions with automated testing and deployment
 
+### Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph "Frontend (Next.js)"
+        A[React Components] --> B[Leaflet Map]
+        A --> C[Route Creator]
+        A --> D[Review System]
+        A --> E[User Interface]
+        
+        B --> F[OpenStreetMap Tiles]
+        C --> G[Drawing Tools]
+        D --> H[Rating System]
+        E --> I[Tailwind CSS]
+        
+        subgraph "State Management"
+            J[Zustand Store] --> K[Local Storage]
+            J --> L[API Client]
+        end
+    end
+    
+    subgraph "Backend (Fastify)"
+        M[API Server] --> N[Route Service]
+        M --> O[Review Service]
+        M --> P[User Service]
+        M --> Q[Auth Middleware]
+        
+        N --> R[PostGIS Database]
+        O --> R
+        P --> R
+        Q --> S[Supabase Auth]
+    end
+    
+    subgraph "Database (PostgreSQL + PostGIS)"
+        R --> T[Roads Table]
+        R --> U[Reviews Table]
+        R --> V[Users Table]
+        R --> W[GEO Data]
+    end
+    
+    subgraph "External Services"
+        X[Google Maps API] --> Y[Navigation Export]
+        Z[Apple Maps API] --> AA[Navigation Export]
+        BB[GPX Parser] --> CC[Route Import]
+    end
+    
+    subgraph "Deployment"
+        DD[GitHub Actions] --> EE[Static Export]
+        DD --> FF[API Deployment]
+        EE --> GG[GitHub Pages]
+        FF --> HH[Production Server]
+    end
+    
+    L --> M
+    Q --> S
+    Y --> A
+    AA --> A
+    CC --> C
+    
+    subgraph "Demo Mode"
+        II[Browser Storage] --> JJ[Sample Data]
+        II --> KK[Local Auth]
+        A --> II
+    end
+```
+
 ## Modes of Operation
 
 ### Demo Mode (Browser Storage)
