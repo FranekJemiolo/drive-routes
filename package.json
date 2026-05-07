@@ -1,7 +1,7 @@
 {
   "name": "drive-routes",
   "version": "0.1.0",
-  "description": "A web app for finding and sharing great driving roads. Users can rate routes and upload GPX files to share their favorite drives.",
+  "description": "A web app for discovering, rating, and sharing the best driving roads.",
   "private": true,
   "workspaces": [
     "apps/web",
