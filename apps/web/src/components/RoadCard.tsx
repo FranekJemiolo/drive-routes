@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { isAuthenticated, getUser } from "../lib/auth";
 import { fetchSavedRouteIds, toggleSaveRoute } from "../lib/api";
 import RoadDetailModal from "./RoadDetailModal";
+import { TrackCircuitMinimap } from "./TrackCircuitMinimap";
 
 type Props = {
   road: Road;
@@ -18,10 +19,10 @@ export default function RoadCard({ road }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [L, setL] = useState<any>(null);
-  const [leafletCss, setLeafletCss] = useState<any>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [viewMode, setViewMode] = useState<"circuit" | "map">("circuit");
 
   useEffect(() => {
     setAuthenticated(isAuthenticated());
@@ -48,17 +49,21 @@ export default function RoadCard({ road }: Props) {
   };
 
   useEffect(() => {
-    // Dynamic import Leaflet only on client side
-    import("leaflet").then((leaflet) => {
-      setL(leaflet.default);
-    });
-    import("leaflet/dist/leaflet.css").then(() => {
-      setLeafletCss(true);
-    });
-  }, []);
+    if (viewMode === "map" && !L) {
+      import("leaflet").then((leaflet) => {
+        setL(leaflet.default);
+      });
+      import("leaflet/dist/leaflet.css");
+    }
+  }, [viewMode, L]);
 
   useEffect(() => {
-    if (!mapRef.current || !L) return;
+    if (viewMode !== "map" || !mapRef.current || !L) return;
+
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
     // Initialize map
     const map = L.map(mapRef.current, {
@@ -74,9 +79,9 @@ export default function RoadCard({ road }: Props) {
 
     mapInstanceRef.current = map;
 
-    // Add OpenStreetMap tiles
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap",
+    // Use dark tiles for consistent dark theme
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: "© CARTO",
     }).addTo(map);
 
     // Draw road geometry
@@ -93,18 +98,17 @@ export default function RoadCard({ road }: Props) {
 
       const polyline = L.polyline(coords, {
         color: routeColor,
-        weight: 3,
-        opacity: 0.8,
+        weight: 3.5,
+        opacity: 0.9,
       }).addTo(map);
 
       // Fit map to road bounds
-      map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+      map.fitBounds(polyline.getBounds(), { padding: [15, 15] });
     }
 
-    // Invalidate map size to ensure proper rendering
     setTimeout(() => {
       map.invalidateSize();
-    }, 100);
+    }, 120);
 
     return () => {
       if (mapInstanceRef.current) {
@@ -112,67 +116,133 @@ export default function RoadCard({ road }: Props) {
         mapInstanceRef.current = null;
       }
     };
-  }, [road.geometry, L]);
+  }, [viewMode, road.geometry, rating, road.rating_count, L]);
+
+  const coordinates = road.geometry?.coordinates || [];
 
   return (
     <>
       <Card 
-        className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer"
+        className="bg-slate-900/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900/95 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-xl group flex flex-col justify-between overflow-hidden"
         onClick={() => setShowDetail(true)}
       >
-      <CardHeader>
-        <CardTitle className="text-white text-lg">{road.name}</CardTitle>
-        <CardDescription className="text-slate-400">
-          {road.countries && road.countries.length > 0 ? road.countries.join(", ") : "Unknown"} • {road.region}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Miniature map */}
-        <div ref={mapRef} className="w-full h-32 bg-slate-700 rounded-lg" />
+        <div>
+          <CardHeader className="p-5 pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-white text-lg font-bold group-hover:text-emerald-400 transition-colors truncate">
+                  {road.name}
+                </CardTitle>
+                <CardDescription className="text-slate-400 text-xs mt-0.5 truncate">
+                  {road.countries && road.countries.length > 0 ? road.countries.join(", ") : "Unknown"} {road.region ? `• ${road.region}` : ''}
+                </CardDescription>
+              </div>
 
-        {/* Rating and stats */}
-        <div className="flex items-center justify-between">
-          <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-            rating >= 8 ? 'bg-green-500/20 text-green-400' :
-            rating >= 5 ? 'bg-yellow-500/20 text-yellow-400' :
-            'bg-red-500/20 text-red-400'
-          }`}>
-            ★ {rating.toFixed(1)}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-slate-400 text-sm">{length.toFixed(1)} km</span>
-            {authenticated && (
-              <button
-                onClick={handleSaveToggle}
-                className={`p-2 rounded-full transition-colors ${
-                  isSaved 
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                }`}
-                title={isSaved ? "Remove from saved" : "Save route"}
+              {/* View Switcher: Circuit Minimap vs Map */}
+              <div 
+                className="flex items-center bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 flex-shrink-0"
+                onClick={(e) => e.stopPropagation()}
               >
-                <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("circuit")}
+                  title="Circuit Minimap View"
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                    viewMode === "circuit" 
+                      ? "bg-emerald-500 text-white shadow-sm" 
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Circuit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("map")}
+                  title="Map View"
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                    viewMode === "map" 
+                      ? "bg-emerald-500 text-white shadow-sm" 
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Map
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-5 pt-0 space-y-4">
+            {/* Visual Route Preview: Circuit Minimap or Map */}
+            <div className="w-full h-36 rounded-xl overflow-hidden relative">
+              {viewMode === "circuit" ? (
+                <TrackCircuitMinimap
+                  coordinates={coordinates}
+                  name={road.name}
+                  lengthKm={length}
+                  height={144}
+                  showStats={false}
+                  allowDownload={false}
+                  theme={rating >= 8 ? "neon-green" : rating >= 5 ? "electric-amber" : "cyber-cyan"}
+                  className="w-full h-full"
+                />
+              ) : (
+                <div ref={mapRef} className="w-full h-full bg-slate-950 rounded-xl" />
+              )}
+            </div>
+
+            {/* Rating and stats */}
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2">
+                <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  rating >= 8 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                  rating >= 5 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                  rating > 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                  'bg-slate-800 text-slate-400 border border-slate-700'
+                }`}>
+                  ★ {rating > 0 ? rating.toFixed(1) : "New"}
+                </div>
+                <span className="text-slate-500 text-xs">
+                  {road.rating_count} {road.rating_count === 1 ? 'review' : 'reviews'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-slate-300 font-medium text-xs">
+                  {length > 0 ? `${length.toFixed(1)} km` : ""}
+                </span>
+                {authenticated && (
+                  <button
+                    onClick={handleSaveToggle}
+                    className={`p-1.5 rounded-full transition-all ${
+                      isSaved 
+                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                    }`}
+                    title={isSaved ? "Remove from saved" : "Save route"}
+                  >
+                    <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Tags */}
+            {road.tags && road.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {road.tags.slice(0, 3).map(tag => (
+                  <Badge key={tag} variant="secondary" className="bg-slate-800 text-slate-300 text-[11px] font-normal px-2 py-0.5 border border-slate-700/50">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             )}
-          </div>
+          </CardContent>
         </div>
+      </Card>
 
-        {/* Tags */}
-        {road.tags && road.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {road.tags.slice(0, 3).map(tag => (
-              <Badge key={tag} variant="secondary" className="bg-slate-700 text-slate-200 text-xs">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-
-    <RoadDetailModal roadId={showDetail ? road.id : null} onClose={() => setShowDetail(false)} />
+      <RoadDetailModal roadId={showDetail ? road.id : null} onClose={() => setShowDetail(false)} />
     </>
   );
 }

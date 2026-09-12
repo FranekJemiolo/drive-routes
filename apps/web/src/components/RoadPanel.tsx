@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ReviewsList } from "./ReviewsList";
 import { fetchReviews } from "../lib/api";
+import { TrackCircuitMinimap } from "./TrackCircuitMinimap";
 
 type Props = {
   road: Road;
@@ -127,6 +128,19 @@ export default function RoadPanel({ road, onClose }: Props) {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Track Circuit Minimap Graphic */}
+          <div className="w-full h-32 rounded-xl overflow-hidden border border-slate-800">
+            <TrackCircuitMinimap
+              coordinates={road.geometry?.coordinates || []}
+              name={road.name}
+              lengthKm={length}
+              height={128}
+              showStats={false}
+              allowDownload={true}
+              theme={rating >= 8 ? "neon-green" : rating >= 5 ? "electric-amber" : "cyber-cyan"}
+            />
+          </div>
+
           {/* Rating Badge */}
           <div className="flex items-center space-x-2">
             <div className={`px-3 py-1 rounded-full text-sm font-semibold ${

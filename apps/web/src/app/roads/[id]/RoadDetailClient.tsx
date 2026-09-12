@@ -9,6 +9,7 @@ import { ReviewsList } from "../../../components/ReviewsList";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { isAuthenticated, getUser } from "../../../lib/auth";
+import { TrackCircuitMinimap } from "../../../components/TrackCircuitMinimap";
 
 type Props = {
   roadId: string;
@@ -21,6 +22,7 @@ export default function RoadDetailClient({ roadId }: Props) {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [savingRoute, setSavingRoute] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"circuit" | "map">("circuit");
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [L, setL] = useState<any>(null);
@@ -296,10 +298,57 @@ export default function RoadDetailClient({ roadId }: Props) {
             </div>
           )}
 
-          {/* Map Preview */}
+          {/* Map & Circuit Preview */}
           <div className="mb-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">Route Map</h2>
-            <div ref={mapRef} className="w-full h-80 rounded-xl overflow-hidden border border-slate-700" />
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <span>Route Visualizer</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-slate-400 font-normal">{previewMode === "circuit" ? "Circuit Minimap Graphic" : "Interactive Map"}</span>
+              </h2>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-slate-900/90 p-1 rounded-lg border border-slate-700 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("circuit")}
+                    className={`px-3 py-1 rounded-md font-medium transition-all ${
+                      previewMode === "circuit"
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Circuit Graphic
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("map")}
+                    className={`px-3 py-1 rounded-md font-medium transition-all ${
+                      previewMode === "map"
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Geographic Map
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {previewMode === "circuit" ? (
+              <TrackCircuitMinimap
+                coordinates={road.geometry?.coordinates || []}
+                name={road.name}
+                lengthKm={length}
+                height={320}
+                showStats={true}
+                allowDownload={true}
+                theme={rating >= 8 ? "neon-green" : rating >= 5 ? "electric-amber" : "cyber-cyan"}
+                className="w-full"
+              />
+            ) : (
+              <div ref={mapRef} className="w-full h-80 rounded-xl overflow-hidden border border-slate-700 bg-slate-950" />
+            )}
           </div>
 
           {/* Navigation Action Buttons */}
