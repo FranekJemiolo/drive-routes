@@ -104,7 +104,7 @@ export default function LeafletMap({ onSelectRoad }: Props) {
       
       const coordinates = road.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]);
       const polyline = L.polyline(coordinates, {
-        color: "#ef4444",
+        color: getRoadColor(road.rating_avg, road.rating_count),
         weight: 4,
         opacity: 0.9,
       }).addTo(mapRef.current);
@@ -113,14 +113,21 @@ export default function LeafletMap({ onSelectRoad }: Props) {
       polyline.on("click", () => onSelectRoad?.(road));
 
       // Add popup
+      const ratingText = road.rating_count > 0 
+        ? `★ ${Number(road.rating_avg).toFixed(1)} (${road.rating_count} reviews)`
+        : 'No reviews yet';
+      const tagsHtml = (road.tags || [])
+        .map(tag => `<span style="display: inline-block; background: #e2e8f0; color: #334155; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500;">${tag}</span>`)
+        .join('');
+
       const popup = L.popup()
         .setLatLng(coordinates[0])
         .setContent(`
           <div style="color: #1e293b;">
             <div style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.25rem;">${road.name}</div>
-            <div style="font-size: 0.875rem; color: #475569; margin-bottom: 0.5rem;">★ ${Number(road.rating_avg).toFixed(1)}</div>
+            <div style="font-size: 0.875rem; color: #475569; margin-bottom: 0.5rem;">${ratingText}</div>
             <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
-              ${road.tags.map(tag => `<span style="display: inline-block; background: #e2e8f0; color: #334155; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500;">${tag}</span>`).join('')}
+              ${tagsHtml}
             </div>
           </div>
         `);
@@ -148,9 +155,10 @@ export default function LeafletMap({ onSelectRoad }: Props) {
   );
 }
 
-function getRoadColor(rating: number | string) {
+function getRoadColor(rating: number | string, count: number = 0) {
+  if (count === 0) return "#38bdf8"; // sky blue for unrated roads
   const numRating = parseFloat(String(rating));
   if (numRating >= 8) return "#22c55e"; // green
-  if (numRating >= 5) return "#f59e0b"; // orange
+  if (numRating >= 5) return "#f59e0b"; // amber
   return "#ef4444"; // red
 }

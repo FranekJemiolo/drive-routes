@@ -57,7 +57,7 @@ async function authMiddleware(req: any, reply: any) {
 
 // Routes
 app.get("/", async (request, reply) => {
-  return { status: "ok", service: "drive-routes-api", mode: getDatabaseMode() });
+  return { status: "ok", service: "drive-routes-api", mode: getDatabaseMode() };
 });
 
 // POST /auth/register - Register new user
@@ -319,62 +319,197 @@ app.post("/roads/import-gpx", { preHandler: authMiddleware }, async (request: an
   }
 });
 
-// GET reviews for a road
-app.get("/reviews", async (request, reply) => {
-  const { road_id } = request.query as { road_id?: string };
-  
-  let sql = `
-    SELECT r.*, u.name as username
-    FROM reviews r
-    JOIN users u ON r.user_id = u.id
-  `;
-  
-  const params: any[] = [];
-  
-  if (road_id) {
-    sql += ` WHERE r.road_id = ?`;
-    params.push(road_id);
-  }
-  
-  sql += ` ORDER BY r.created_at DESC`;
-  
-  const result = await query(sql, params);
-  return result;
-});
+async function updateRoadStatsLocal(roadId: string) {
+  const stats = await query(
+    `SELECT AVG(score) as avg_score, COUNT(*) as count FROM reviews WHERE road_id = ?`,
+    [roadId]
+  );
+  const avg = stats.length > 0 && stats[0].avg_score !== null ? Number(stats[0].avg_score) : 0;
+  const count = stats.length > 0 ? Number(stats[0].count) : 0;
+  await query(
+    `UPDATE roads SET rating_avg = ?, rating_count = ? WHERE id = ?`,
+    [avg, count, roadId]
+  );
+}
 
-// POST review (requires auth) - simplified for demo mode
-app.post("/reviews", { preHandler: authMiddleware }, async (request: any, reply) => {
-  const { road_id, rating, comment } = request.body;
-  const user = request.user;
+// GET reviews for a road with sorting
+app.get("/roads/:id/reviews", async (request, reply) => {
+  const { id } = request.params as { id: string };
+  const { sort } = request.query as { sort?: string };
+  
+  let orderBy = 'r.created_at DESC';
+  if (sort === 'score_asc') orderBy = 'r.score ASC';
+  else if (sort === 'score_desc') orderBy = 'r.score DESC';
+  else if (sort === 'recency_asc') orderBy = 'r.created_at ASC';
+  else if (sort === 'recency_desc') orderBy = 'r.created_at DESC';
   
   const result = await query(
     `
-    INSERT INTO reviews (user_id, road_id, rating, comment)
-    VALUES (?, ?, ?, ?)
+    SELECT 
+      r.id, r.user_id, r.road_id, r.score, r.text, r.created_at, r.updated_at,
+      u.username
+    FROM reviews r
+    JOIN users u ON r.user_id = u.id
+    WHERE r.road_id = ?
+    ORDER BY ${orderBy}
     `,
-    [user.id, road_id, rating, comment]
+    [id]
   );
   
-  // Simplified rating update for demo mode
-  const avgResult = await query(
-    `
-    SELECT AVG(rating) as avg_rating, COUNT(*) as count
-    FROM reviews WHERE road_id = ?
-    `,
-    [road_id]
-  );
+  return result.map((row: any) => ({
+    id: row.id,
+    user_id: row.user_id,
+    road_id: row.road_id,
+    score: row.score,
+    text: row.text,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    user: {
+      id: row.user_id,
+      username: row.username
+    }
+  }));
+});
+
+// POST review (requires auth)
+app.post("/roads/:id/reviews", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const { score, text } = request.body;
+  const user = request.user;
   
-  const avg = avgResult[0];
+  if (score === undefined || score < 1 || score > 10) {
+    return reply.code(400).send({ error: "Score must be between 1 and 10" });
+  }
+
+  const existing = await query('SELECT id FROM reviews WHERE user_id = ? AND road_id = ?', [user.id, id]);
+  if (existing.length > 0) {
+    return reply.code(400).send({ error: "You have already reviewed this road" });
+  }
+
+  const reviewId = Date.now().toString();
+  const now = new Date().toISOString();
   await query(
-    `
-    UPDATE roads 
-    SET rating_avg = ?, rating_count = ?
-    WHERE id = ?
-    `,
-    [avg.avg_rating, avg.count, road_id]
+    `INSERT INTO reviews (id, user_id, road_id, score, text, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [reviewId, user.id, id, score, text || '', now, now]
   );
-  
-  return { id: (result as any).lastID, created_at: new Date().toISOString() };
+
+  await updateRoadStatsLocal(id);
+  return { id: reviewId, user_id: user.id, road_id: id, score, text, created_at: now, user: { id: user.id, username: user.username } };
+});
+
+// PUT review (requires auth, owner only)
+app.put("/reviews/:id", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const { score, text } = request.body;
+  const user = request.user;
+
+  if (score !== undefined && (score < 1 || score > 10)) {
+    return reply.code(400).send({ error: "Score must be between 1 and 10" });
+  }
+
+  const existing = await query('SELECT * FROM reviews WHERE id = ?', [id]);
+  if (existing.length === 0) {
+    return reply.code(404).send({ error: "Review not found" });
+  }
+
+  if (String(existing[0].user_id) !== String(user.id)) {
+    return reply.code(403).send({ error: "You can only edit your own reviews" });
+  }
+
+  const newScore = score !== undefined ? score : existing[0].score;
+  const newText = text !== undefined ? text : existing[0].text;
+  const now = new Date().toISOString();
+
+  await query(
+    `UPDATE reviews SET score = ?, text = ?, updated_at = ? WHERE id = ?`,
+    [newScore, newText, now, id]
+  );
+
+  await updateRoadStatsLocal(existing[0].road_id);
+  return { id, user_id: user.id, road_id: existing[0].road_id, score: newScore, text: newText, updated_at: now, user: { id: user.id, username: user.username } };
+});
+
+// DELETE review (requires auth, owner only)
+app.delete("/reviews/:id", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const user = request.user;
+
+  const existing = await query('SELECT * FROM reviews WHERE id = ?', [id]);
+  if (existing.length === 0) {
+    return reply.code(404).send({ error: "Review not found" });
+  }
+
+  if (String(existing[0].user_id) !== String(user.id)) {
+    return reply.code(403).send({ error: "You can only delete your own reviews" });
+  }
+
+  const roadId = existing[0].road_id;
+  await query('DELETE FROM reviews WHERE id = ?', [id]);
+  await updateRoadStatsLocal(roadId);
+
+  return { success: true };
+});
+
+// POST /roads/:id/save - Save route
+app.post("/roads/:id/save", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const user = request.user;
+
+  const existingCollection = await query('SELECT id, road_ids FROM user_routes WHERE created_by = ? AND name = ?', [user.id, '__saved__']);
+  let roadIds: string[] = [];
+  if (existingCollection.length > 0) {
+    roadIds = typeof existingCollection[0].road_ids === 'string' ? JSON.parse(existingCollection[0].road_ids) : (existingCollection[0].road_ids || []);
+    if (!roadIds.includes(id)) {
+      roadIds.push(id);
+      await query('UPDATE user_routes SET road_ids = ? WHERE id = ?', [JSON.stringify(roadIds), existingCollection[0].id]);
+      await query('UPDATE roads SET save_count = COALESCE(save_count, 0) + 1 WHERE id = ?', [id]);
+    }
+  } else {
+    roadIds = [id];
+    await query('INSERT INTO user_routes (name, road_ids, created_by, visibility) VALUES (?, ?, ?, ?)', ['__saved__', JSON.stringify(roadIds), user.id, 'private']);
+    await query('UPDATE roads SET save_count = COALESCE(save_count, 0) + 1 WHERE id = ?', [id]);
+  }
+
+  return { success: true, saved: true };
+});
+
+// DELETE /roads/:id/save - Unsave route
+app.delete("/roads/:id/save", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const user = request.user;
+
+  const existingCollection = await query('SELECT id, road_ids FROM user_routes WHERE created_by = ? AND name = ?', [user.id, '__saved__']);
+  if (existingCollection.length > 0) {
+    let roadIds: string[] = typeof existingCollection[0].road_ids === 'string' ? JSON.parse(existingCollection[0].road_ids) : (existingCollection[0].road_ids || []);
+    if (roadIds.includes(id)) {
+      roadIds = roadIds.filter((r: string) => r !== id);
+      await query('UPDATE user_routes SET road_ids = ? WHERE id = ?', [JSON.stringify(roadIds), existingCollection[0].id]);
+      await query('UPDATE roads SET save_count = CASE WHEN save_count > 0 THEN save_count - 1 ELSE 0 END WHERE id = ?', [id]);
+    }
+  }
+
+  return { success: true, saved: false };
+});
+
+// GET /user/saved-routes
+app.get("/user/saved-routes", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const user = request.user;
+  const existingCollection = await query('SELECT road_ids FROM user_routes WHERE created_by = ? AND name = ?', [user.id, '__saved__']);
+  if (existingCollection.length === 0) return [];
+  const roadIds: string[] = typeof existingCollection[0].road_ids === 'string' ? JSON.parse(existingCollection[0].road_ids) : (existingCollection[0].road_ids || []);
+  return roadIds;
+});
+
+// GET /user/created-routes
+app.get("/user/created-routes", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const user = request.user;
+  const roads = await query('SELECT * FROM roads WHERE created_by = ? ORDER BY created_at DESC', [user.id]);
+  return roads.map((road: any) => ({
+    ...road,
+    geometry: typeof road.geometry === 'string' ? JSON.parse(road.geometry) : road.geometry,
+    tags: typeof road.tags === 'string' ? JSON.parse(road.tags) : road.tags,
+    countries: typeof road.countries === 'string' ? JSON.parse(road.countries) : road.countries,
+  }));
 });
 
 // Start server

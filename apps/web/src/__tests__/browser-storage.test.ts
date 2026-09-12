@@ -5,6 +5,9 @@ import {
   createRoad,
   getReviews,
   createReview,
+  updateReview,
+  deleteReview,
+  importGPXToStorage,
   getSavedRoutes,
   saveRoute,
   unsaveRoute,
@@ -186,6 +189,106 @@ describe('Browser Storage (Demo Mode)', () => {
         text: 'Good road',
       });
 
+      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+    });
+
+    it('should update an existing review', () => {
+      const mockReviews: Review[] = [
+        {
+          id: 'rev1',
+          road_id: '1',
+          user_id: 'user1',
+          score: 8,
+          text: 'Good road',
+          created_at: new Date().toISOString(),
+        },
+      ];
+      const mockRoads: Road[] = [
+        {
+          id: '1',
+          name: 'Test Road',
+          geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] },
+          length_km: 10,
+          rating_avg: 8,
+          rating_count: 1,
+          save_count: 0,
+          tags: [],
+          countries: [],
+          region: '',
+          created_by: '1',
+          created_at: new Date().toISOString(),
+        },
+      ];
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === 'drive_routes_reviews') return JSON.stringify(mockReviews);
+        if (key === 'drive_routes_roads') return JSON.stringify(mockRoads);
+        return null;
+      });
+
+      const updated = updateReview('rev1', { score: 10, text: 'Masterpiece' });
+      expect(updated).not.toBeNull();
+      expect(updated?.score).toBe(10);
+      expect(updated?.text).toBe('Masterpiece');
+      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+    });
+
+    it('should delete a review and recalculate road rating', () => {
+      const mockReviews: Review[] = [
+        {
+          id: 'rev1',
+          road_id: '1',
+          user_id: 'user1',
+          score: 8,
+          text: 'Good road',
+          created_at: new Date().toISOString(),
+        },
+      ];
+      const mockRoads: Road[] = [
+        {
+          id: '1',
+          name: 'Test Road',
+          geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] },
+          length_km: 10,
+          rating_avg: 8,
+          rating_count: 1,
+          save_count: 0,
+          tags: [],
+          countries: [],
+          region: '',
+          created_by: '1',
+          created_at: new Date().toISOString(),
+        },
+      ];
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === 'drive_routes_reviews') return JSON.stringify(mockReviews);
+        if (key === 'drive_routes_roads') return JSON.stringify(mockRoads);
+        return null;
+      });
+
+      const deleted = deleteReview('rev1');
+      expect(deleted).toBe(true);
+      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+    });
+  });
+
+  describe('GPX Import', () => {
+    it('should import GPX track data to storage', () => {
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify([]));
+
+      const road = importGPXToStorage(
+        'Mountain GPX Pass',
+        {
+          type: 'LineString',
+          coordinates: [[10.0, 45.0], [10.1, 45.1], [10.2, 45.2]]
+        },
+        35.4,
+        ['scenic', 'gpx-import'],
+        'user1'
+      );
+
+      expect(road.name).toBe('Mountain GPX Pass');
+      expect(road.length_km).toBe(35.4);
+      expect(road.tags).toContain('gpx-import');
       expect(mockLocalStorage.setItem).toHaveBeenCalled();
     });
   });

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Road } from "../../types";
 import RoadCard from "../../components/RoadCard";
 import Navbar from "../../components/Navbar";
 import { isAuthenticated, getUser } from "../../lib/auth";
-import { getRoadsByUserId, getSavedRoutes, getRoad } from "../../lib/browser-storage";
+import { fetchSavedRouteIds, fetchUserCreatedRoads, fetchRoadDetail } from "../../lib/api";
 
 export default function MyRoutesPage() {
   const [savedRoads, setSavedRoads] = useState<Road[]>([]);
@@ -28,18 +29,29 @@ export default function MyRoutesPage() {
 
     const user = getUser();
     if (user) {
-      // Get routes created by user
-      const userCreatedRoads = getRoadsByUserId(user.id);
-      setCreatedRoads(userCreatedRoads);
+      const loadUserRoutes = async () => {
+        setLoading(true);
+        try {
+          // Get routes created by user
+          const userCreatedRoads = await fetchUserCreatedRoads(user?.id);
+          setCreatedRoads(userCreatedRoads);
 
-      // Get routes saved by user
-      const savedRouteIds = getSavedRoutes(user.id);
-      const savedRoadsData = savedRouteIds
-        .map(id => getRoad(id))
-        .filter((road): road is Road => road !== null);
-      setSavedRoads(savedRoadsData);
+          // Get routes saved by user
+          const savedRouteIds = await fetchSavedRouteIds(user?.id);
+          const savedRoadsData = await Promise.all(
+            savedRouteIds.map(id => fetchRoadDetail(id))
+          );
+          setSavedRoads(savedRoadsData.filter((road): road is Road => road !== null));
+        } catch (err) {
+          console.error("Failed to load user routes:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadUserRoutes();
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, [mounted]);
 
   if (!mounted) {
@@ -72,7 +84,7 @@ export default function MyRoutesPage() {
       <div className="min-h-screen bg-slate-950 pt-16">
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20">
-          <div className="text-center text-slate-400">Loading...</div>
+          <div className="text-center text-slate-400">Loading routes...</div>
         </div>
       </div>
     );
@@ -108,9 +120,7 @@ export default function MyRoutesPage() {
           </button>
         </div>
         
-        {loading ? (
-          <div className="text-center text-slate-400">Loading...</div>
-        ) : activeTab === 'saved' && savedRoads.length === 0 ? (
+        {activeTab === 'saved' && savedRoads.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,12 +129,12 @@ export default function MyRoutesPage() {
             </div>
             <h2 className="text-xl font-semibold text-white mb-2">No saved routes yet</h2>
             <p className="text-slate-400 mb-6">Click the heart icon on any route to save it here.</p>
-            <a
+            <Link
               href="/roads"
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium transition-colors"
             >
               Browse Roads
-            </a>
+            </Link>
           </div>
         ) : activeTab === 'created' && createdRoads.length === 0 ? (
           <div className="text-center py-12">
@@ -135,12 +145,12 @@ export default function MyRoutesPage() {
             </div>
             <h2 className="text-xl font-semibold text-white mb-2">No created routes yet</h2>
             <p className="text-slate-400 mb-6">Start creating your own driving routes!</p>
-            <a
+            <Link
               href="/"
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium transition-colors"
             >
               Create Route
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

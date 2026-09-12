@@ -311,6 +311,101 @@ app.delete("/reviews/:id", { preHandler: authMiddleware }, async (request: any, 
   return { success: true };
 });
 
+// POST /roads/:id/save - Save route
+app.post("/roads/:id/save", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const user = request.user;
+
+  const existing = await pool.query(
+    "SELECT id, road_ids FROM user_routes WHERE created_by = $1 AND name = '__saved__'",
+    [user.id]
+  );
+
+  if (existing.rows.length > 0) {
+    const roadIds: string[] = existing.rows[0].road_ids || [];
+    if (!roadIds.includes(id)) {
+      await pool.query(
+        "UPDATE user_routes SET road_ids = array_append(road_ids, $1) WHERE id = $2",
+        [id, existing.rows[0].id]
+      );
+      await pool.query(
+        "UPDATE roads SET save_count = COALESCE(save_count, 0) + 1 WHERE id = $1",
+        [id]
+      );
+    }
+  } else {
+    await pool.query(
+      "INSERT INTO user_routes (name, road_ids, created_by, visibility) VALUES ('__saved__', ARRAY[$1]::uuid[], $2, 'private')",
+      [id, user.id]
+    );
+    await pool.query(
+      "UPDATE roads SET save_count = COALESCE(save_count, 0) + 1 WHERE id = $1",
+      [id]
+    );
+  }
+
+  return { success: true, saved: true };
+});
+
+// DELETE /roads/:id/save - Unsave route
+app.delete("/roads/:id/save", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const { id } = request.params as { id: string };
+  const user = request.user;
+
+  const existing = await pool.query(
+    "SELECT id, road_ids FROM user_routes WHERE created_by = $1 AND name = '__saved__'",
+    [user.id]
+  );
+
+  if (existing.rows.length > 0) {
+    const roadIds: string[] = existing.rows[0].road_ids || [];
+    if (roadIds.includes(id)) {
+      await pool.query(
+        "UPDATE user_routes SET road_ids = array_remove(road_ids, $1) WHERE id = $2",
+        [id, existing.rows[0].id]
+      );
+      await pool.query(
+        "UPDATE roads SET save_count = GREATEST(0, COALESCE(save_count, 0) - 1) WHERE id = $1",
+        [id]
+      );
+    }
+  }
+
+  return { success: true, saved: false };
+});
+
+// GET /user/saved-routes
+app.get("/user/saved-routes", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const user = request.user;
+  const existing = await pool.query(
+    "SELECT road_ids FROM user_routes WHERE created_by = $1 AND name = '__saved__'",
+    [user.id]
+  );
+  if (existing.rows.length === 0) return [];
+  return existing.rows[0].road_ids || [];
+});
+
+// GET /user/created-routes
+app.get("/user/created-routes", { preHandler: authMiddleware }, async (request: any, reply) => {
+  const user = request.user;
+  const result = await pool.query(
+    `
+    SELECT 
+      id, name, description, rating_avg, rating_count, save_count,
+      ST_AsGeoJSON(geometry) as geometry,
+      tags, country, region, length_km, created_by, created_at
+    FROM roads
+    WHERE created_by = $1
+    ORDER BY created_at DESC
+    `,
+    [user.id]
+  );
+  return result.rows.map(row => ({
+    ...row,
+    geometry: JSON.parse(row.geometry),
+  }));
+});
+
 // Start server
 const start = async () => {
   try {

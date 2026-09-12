@@ -131,32 +131,47 @@ DriveRoutes is a social platform for discovering, rating, and sharing the best d
 - Database trigger automatically updates ratings in production mode
 - Browser storage manually calculates ratings in demo mode
 
+### 2026-09-12: Bug Fixes, GPX Import UI, and Full Road Detail Page
+**Decision**: Comprehensive code audit, bug fixing, and missing vision feature implementation
+**Reason**: To resolve blocking TypeScript errors, enable GPX import in the UI, and complete the road detail page and review management
+**Outcome**:
+- Fixed TypeScript syntax error and schema mismatches in `apps/api/src/index-local.ts`
+- Added missing `@types/xmldom` and `@types/sql.js` to `apps/api` devDependencies
+- Fixed `isBrowserMode()` logic so localhost with API server correctly uses backend API
+- Added `updateReview` and `deleteReview` to browser storage and hooked into `api.ts`
+- Implemented GPX file upload in `RouteEditor` supporting track parsing, length calculation, and map geometry in both demo and API modes
+- Fully built out `/roads/[id]` detail page with interactive route map preview, Google & Apple Maps navigation buttons, save button, and full `ReviewsList`
+- Unified `RoadDetailModal` with `ReviewsList` and navigation buttons
+- Replaced standard `<a>` tags in `my-routes` with Next.js `<Link>` for GitHub Pages basePath compatibility
+- Added dynamic rating-based polyline coloring on `LeafletMap` and `RoadCard`
+- Added `test`, `test:watch`, and `type-check` scripts to root `package.json`
+- Added tests for `updateReview`, `deleteReview`, and GPX import in Jest test suite
+
 ## Known Issues
-- xmldom package lacks TypeScript types (non-blocking)
 - @apply rule in globals.css shows unknown at-rule warning (cosmetic)
-- apps/api/src/index-local.ts has TypeScript errors (non-blocking, local dev only)
 
 ## Completed Features
 - ✅ Interactive map with Leaflet
 - ✅ Road discovery and filtering
 - ✅ Route creation with map drawing
+- ✅ GPX route upload and parsing in UI (both demo and API modes)
 - ✅ Automatic length calculation using Haversine formula
 - ✅ Single score rating system (1-10)
-- ✅ Review submission and display
+- ✅ Review submission, editing, deleting, and display
 - ✅ Review sorting (score, recency)
 - ✅ Navigation integration (Google Maps, Apple Maps)
+- ✅ Complete road detail page with map, stats, and reviews (`/roads/[id]`)
+- ✅ Saved routes in both demo and API mode
 - ✅ Responsive design with mobile menu
 - ✅ Demo mode (browser storage)
 - ✅ Production mode (PostgreSQL + API)
-- ✅ Jest testing framework
+- ✅ Jest testing framework with 17 tests
 - ✅ CI/CD pipeline with automated testing
 - ✅ GitHub Pages deployment
 - ✅ Comprehensive documentation
 
 ## Future Improvements
-- Add @types/xmldom for TypeScript support
 - Add tests for production mode (API endpoints)
-- Implement user route collections
-- Add GPX import functionality
+- Implement user route collections UI
 - Implement proper Supabase authentication flow
 - Add more sample roads to seed data

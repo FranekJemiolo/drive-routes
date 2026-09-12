@@ -316,7 +316,11 @@ export function createReview(review: Partial<Review>): Review {
     user_id: review.user_id || '1',
     score: review.score || 5,
     text: review.text || '',
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    user: review.user || {
+      id: review.user_id || '1',
+      username: 'Driver'
+    }
   };
 
   reviews.push(newReview);
@@ -326,6 +330,53 @@ export function createReview(review: Partial<Review>): Review {
   updateRoadRating(review.road_id || '');
 
   return newReview;
+}
+
+export function updateReview(id: string, updates: Partial<Review>): Review | null {
+  const reviews = getReviews();
+  const index = reviews.findIndex(r => r.id === id);
+  if (index === -1) return null;
+
+  reviews[index] = {
+    ...reviews[index],
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+  localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+
+  updateRoadRating(reviews[index].road_id);
+  return reviews[index];
+}
+
+export function deleteReview(id: string): boolean {
+  const reviews = getReviews();
+  const reviewToDelete = reviews.find(r => r.id === id);
+  if (!reviewToDelete) return false;
+
+  const filtered = reviews.filter(r => r.id !== id);
+  localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(filtered));
+
+  updateRoadRating(reviewToDelete.road_id);
+  return true;
+}
+
+export function importGPXToStorage(
+  name: string,
+  geometry: { type: 'LineString'; coordinates: [number, number][] },
+  lengthKm: number,
+  tags: string[] = ['gpx-import'],
+  userId?: string
+): Road {
+  return createRoad({
+    name,
+    description: 'Imported GPX route',
+    geometry,
+    length_km: lengthKm,
+    tags,
+    countries: [],
+    region: 'GPX Track',
+    created_by: userId || '1',
+  }, userId);
 }
 
 export function updateRoadRating(roadId: string): void {
@@ -347,14 +398,14 @@ export function updateRoadRating(roadId: string): void {
 // Check if running in browser mode
 export function isBrowserMode(): boolean {
   if (typeof window === 'undefined') {
-    console.log('[Browser Storage] SSR - returning false');
     return false;
   }
   const hostname = window.location.hostname;
-  console.log('[Browser Storage] Hostname:', hostname);
-  // Always use browser mode for GitHub Pages or when no API URL is configured
-  const noApiUrl = !process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL === 'http://localhost:3001';
-  const isBrowser = hostname.includes('github.io') || hostname.includes('localhost') || noApiUrl;
-  console.log('[Browser Storage] isBrowserMode:', isBrowser, '(noApiUrl:', noApiUrl, ')');
-  return isBrowser;
+  // Always use browser mode for GitHub Pages
+  if (hostname.includes('github.io')) return true;
+  // If explicitly requested via DEMO_MODE flag
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') return true;
+  // If no API URL configured or empty string
+  if (!process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL === '') return true;
+  return false;
 }

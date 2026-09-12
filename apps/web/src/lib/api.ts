@@ -9,7 +9,14 @@ import {
   updateRoad as updateBrowserRoad,
   deleteRoad as deleteBrowserRoad,
   getReviews as getBrowserReviews,
-  createReview as createBrowserReview
+  createReview as createBrowserReview,
+  updateReview as updateBrowserReview,
+  deleteReview as deleteBrowserReview,
+  saveRoute as saveBrowserRoute,
+  unsaveRoute as unsaveBrowserRoute,
+  getSavedRoutes as getBrowserSavedRoutes,
+  getRoadsByUserId as getBrowserRoadsByUserId,
+  importGPXToStorage
 } from "./browser-storage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -165,6 +172,18 @@ export async function createReview(roadId: string, review: { score: number; text
 }
 
 export async function updateReview(reviewId: string, review: { score?: number; text?: string }): Promise<Review | null> {
+  // For static GitHub Pages deployment, use browser storage
+  if (isBrowserMode()) {
+    ensureStorageInitialized();
+    const updated = updateBrowserReview(reviewId, review);
+    if (!updated) {
+      showToast("error", "Review not found");
+      throw new Error("Review not found");
+    }
+    showToast("success", "Review updated successfully");
+    return updated;
+  }
+
   try {
     const res = await fetch(`${API_URL}/reviews/${reviewId}`, {
       method: "PUT",
@@ -191,6 +210,18 @@ export async function updateReview(reviewId: string, review: { score?: number; t
 }
 
 export async function deleteReview(reviewId: string): Promise<boolean> {
+  // For static GitHub Pages deployment, use browser storage
+  if (isBrowserMode()) {
+    ensureStorageInitialized();
+    const success = deleteBrowserReview(reviewId);
+    if (!success) {
+      showToast("error", "Review not found");
+      throw new Error("Review not found");
+    }
+    showToast("success", "Review deleted successfully");
+    return true;
+  }
+
   try {
     const res = await fetch(`${API_URL}/reviews/${reviewId}`, {
       method: "DELETE",
@@ -215,7 +246,65 @@ export async function deleteReview(reviewId: string): Promise<boolean> {
   }
 }
 
-export async function importGPX(gpxText: string, name: string): Promise<Road[] | null> {
+export function parseGPXString(gpxText: string): { coordinates: [number, number][]; lengthKm: number; name?: string } {
+  if (typeof window === 'undefined') {
+    return { coordinates: [], lengthKm: 0 };
+  }
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(gpxText, "text/xml");
+  const trkpts = xml.querySelectorAll("trkpt, rtept");
+  const coordinates: [number, number][] = [];
+
+  for (let i = 0; i < trkpts.length; i++) {
+    const pt = trkpts[i];
+    const lat = parseFloat(pt.getAttribute("lat") || "0");
+    const lon = parseFloat(pt.getAttribute("lon") || "0");
+    if (!isNaN(lat) && !isNaN(lon)) {
+      coordinates.push([lon, lat]);
+    }
+  }
+
+  // Calculate length with Haversine formula
+  let lengthKm = 0;
+  for (let i = 1; i < coordinates.length; i++) {
+    const [lon1, lat1] = coordinates[i - 1];
+    const [lon2, lat2] = coordinates[i];
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    lengthKm += R * c;
+  }
+
+  const nameNode = xml.querySelector("trk > name, rte > name, metadata > name");
+  const name = nameNode?.textContent?.trim();
+
+  return { coordinates, lengthKm, name };
+}
+
+export async function importGPX(gpxText: string, name: string, userId?: string): Promise<Road | null> {
+  // For static GitHub Pages deployment, use browser storage
+  if (isBrowserMode()) {
+    ensureStorageInitialized();
+    const { coordinates, lengthKm, name: gpxName } = parseGPXString(gpxText);
+    if (coordinates.length < 2) {
+      showToast("error", "GPX file contains no valid track points");
+      throw new Error("Invalid GPX track");
+    }
+    const road = importGPXToStorage(
+      name || gpxName || "Imported Route",
+      { type: "LineString", coordinates },
+      lengthKm,
+      ["gpx-import"],
+      userId
+    );
+    showToast("success", "GPX imported successfully");
+    return road;
+  }
+
   try {
     const res = await fetch(`${API_URL}/roads/import-gpx`, {
       method: "POST",
@@ -239,4 +328,55 @@ export async function importGPX(gpxText: string, name: string): Promise<Road[] |
     showToast("error", "Failed to import GPX");
     throw e;
   }
+}
+
+export async function toggleSaveRoute(roadId: string, currentlySaved: boolean): Promise<boolean> {
+  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("user") || "null") : null;
+  const userId = user?.id || '1';
+
+  if (isBrowserMode()) {
+    ensureStorageInitialized();
+    if (currentlySaved) {
+      unsaveBrowserRoute(userId, roadId);
+      return false;
+    } else {
+      saveBrowserRoute(userId, roadId);
+      return true;
+    }
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/roads/${roadId}/save`, {
+      method: currentlySaved ? "DELETE" : "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    if (!res.ok) throw new Error("Failed to toggle saved route");
+    const data = await res.json();
+    return data.saved;
+  } catch (err) {
+    console.error("Save route error:", err);
+    throw err;
+  }
+}
+
+export async function fetchSavedRouteIds(userId?: string): Promise<string[]> {
+  if (isBrowserMode()) {
+    ensureStorageInitialized();
+    return getBrowserSavedRoutes(userId || '1');
+  }
+
+  const data = await safeFetch(`${API_URL}/user/saved-routes`);
+  return data || [];
+}
+
+export async function fetchUserCreatedRoads(userId?: string): Promise<Road[]> {
+  if (isBrowserMode()) {
+    ensureStorageInitialized();
+    return getBrowserRoadsByUserId(userId || '1');
+  }
+
+  const data = await safeFetch(`${API_URL}/user/created-routes`);
+  return data || [];
 }

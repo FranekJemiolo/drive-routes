@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/
 import { Badge } from "./ui/badge";
 import { useEffect, useRef, useState } from "react";
 import { isAuthenticated, getUser } from "../lib/auth";
-import { isRouteSaved, saveRoute, unsaveRoute } from "../lib/browser-storage";
+import { fetchSavedRouteIds, toggleSaveRoute } from "../lib/api";
 import RoadDetailModal from "./RoadDetailModal";
 
 type Props = {
@@ -28,24 +28,22 @@ export default function RoadCard({ road }: Props) {
     if (isAuthenticated()) {
       const user = getUser();
       if (user) {
-        setIsSaved(isRouteSaved(user.id, road.id));
+        fetchSavedRouteIds(user.id).then(savedIds => {
+          setIsSaved(savedIds.includes(road.id));
+        }).catch(() => {});
       }
     }
   }, [road.id]);
 
-  const handleSaveToggle = (e: React.MouseEvent) => {
+  const handleSaveToggle = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
     if (!authenticated) return;
     
-    const user = getUser();
-    if (!user) return;
-
-    if (isSaved) {
-      unsaveRoute(user.id, road.id);
-      setIsSaved(false);
-    } else {
-      saveRoute(user.id, road.id);
-      setIsSaved(true);
+    try {
+      const newStatus = await toggleSaveRoute(road.id, isSaved);
+      setIsSaved(newStatus);
+    } catch (err) {
+      console.error("Failed to toggle save route:", err);
     }
   };
 
@@ -85,8 +83,16 @@ export default function RoadCard({ road }: Props) {
     if (road.geometry && road.geometry.coordinates) {
       const coords: [number, number][] = road.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]]);
       
+      const routeColor = road.rating_count === 0 
+        ? "#38bdf8" 
+        : rating >= 8 
+        ? "#22c55e" 
+        : rating >= 5 
+        ? "#f59e0b" 
+        : "#ef4444";
+
       const polyline = L.polyline(coords, {
-        color: "#ef4444",
+        color: routeColor,
         weight: 3,
         opacity: 0.8,
       }).addTo(map);
